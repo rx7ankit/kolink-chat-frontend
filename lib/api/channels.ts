@@ -56,10 +56,15 @@ export async function connectChannelDev(channel: string) {
   });
 }
 
-export async function connectWhatsApp() {
+export async function connectWhatsApp(input: {
+  access_token: string;
+  phone_number_id: string;
+  business_account_id?: string;
+  display_name?: string;
+}) {
   return api<ApiChannel>(workspacePath("/channels/whatsapp/connect"), {
     method: "POST",
-    body: {},
+    body: input,
   });
 }
 

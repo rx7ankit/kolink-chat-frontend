@@ -52,7 +52,7 @@ export const channels: Channel[] = [
     messages7d: 2210,
     contacts: 3890,
     accent: "bg-[#d8f4ee] text-[#2d6f64]",
-    description: "Business API chats, catalogs, and broadcasts.",
+    description: "This workspace’s WhatsApp Cloud API number. Connect with your own token + phone number ID.",
   },
   {
     id: "facebook",

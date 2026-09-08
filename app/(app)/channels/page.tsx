@@ -76,6 +76,9 @@ export default function ChannelsPage() {
   const [profile, setProfile] = useState<ChannelProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [pageId, setPageId] = useState("");
+  const [waToken, setWaToken] = useState("");
+  const [waPhoneId, setWaPhoneId] = useState("");
+  const [waWaba, setWaWaba] = useState("");
 
   const refreshProfiles = useCallback(async (rows: ChannelCardItem[]) => {
     const targets = rows.filter((row) => row.connected && PROFILE_CHANNELS.has(row.id));
@@ -155,6 +158,11 @@ export default function ChannelsPage() {
 
   useEffect(() => {
     if (!pending || pending.connected) return;
+    if (pending.id === "whatsapp") {
+      setWaToken("");
+      setWaPhoneId("");
+      setWaWaba("");
+    }
     if (!["instagram", "messenger", "facebook", "whatsapp"].includes(pending.id)) return;
     void getMetaStatus()
       .then(setMeta)
@@ -228,8 +236,16 @@ export default function ChannelsPage() {
         await disconnectChannel(pending.id);
         toast.success(`${pending.name} disconnected`);
       } else if (pending.id === "whatsapp") {
-        await connectWhatsApp();
-        toast.success(`${pending.name} connected from server credentials`);
+        if (!waPhoneId.trim() || !waToken.trim()) {
+          toast.error("Phone number ID and access token are required");
+          return;
+        }
+        await connectWhatsApp({
+          access_token: waToken.trim(),
+          phone_number_id: waPhoneId.trim(),
+          business_account_id: waWaba.trim() || undefined,
+        });
+        toast.success(`${pending.name} connected`);
       } else if (pending.id === "linkedin") {
         const start = await startChannelOAuth(pending.id);
         window.location.href = start.url;
@@ -323,7 +339,7 @@ export default function ChannelsPage() {
               {pending?.connected
                 ? "This removes the live connection for this workspace. Your inbox history stays intact."
                 : pending?.id === "whatsapp"
-                  ? "Uses WhatsApp Cloud API credentials from your server environment (WHATSAPP_* in API .env). No manual tokens needed."
+                  ? "Each workspace connects its own WhatsApp Business number. Paste Cloud API credentials from Meta → WhatsApp → API Setup."
                   : pending?.id === "linkedin"
                     ? "Sign in with LinkedIn to connect your Company Page. Comments sync to Inbox → Comments; Page DMs need Messaging API partner access."
                   : pending?.id === "instagram"
@@ -341,30 +357,53 @@ export default function ChannelsPage() {
           </DialogHeader>
           {pending?.id === "whatsapp" && !pending.connected ? (
             <div className="space-y-3 text-sm">
-              {meta?.whatsapp.configured && meta.whatsapp.ok ? (
-                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                  Server credentials ready
-                  {(() => {
-                    const phone = (meta.whatsapp.details as { phone?: { display_phone_number?: string } })?.phone;
-                    return phone?.display_phone_number ? ` · ${phone.display_phone_number}` : "";
-                  })()}
-                  . Click Confirm to connect.
-                </p>
-              ) : (
-                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  {meta?.whatsapp.next_step ||
-                    "Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID on the API server, then try again."}
-                </p>
-              )}
+              <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                This workspace gets <strong>its own</strong> WhatsApp number. Messages to that number
+                stay in this inbox. Do not reuse another workspace’s token.
+              </p>
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook callback URL (Meta → WhatsApp → Configuration)</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Phone number ID</p>
+                <input
+                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                  placeholder="123456789012345"
+                  value={waPhoneId}
+                  onChange={(e) => setWaPhoneId(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Access token</p>
+                <input
+                  type="password"
+                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                  placeholder="EAAG…"
+                  value={waToken}
+                  onChange={(e) => setWaToken(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  WhatsApp Business Account ID (recommended)
+                </p>
+                <input
+                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                  placeholder="WABA ID"
+                  value={waWaba}
+                  onChange={(e) => setWaWaba(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook callback URL</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
                   {meta?.webhook_callback_url || webhookUrl("meta")}
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
-                Verify token: same as <code className="text-xs">META_VERIFY_TOKEN</code> on your API server.
-                Subscribe to <strong>messages</strong> and <strong>message_status</strong>.
+                In Meta → WhatsApp → Configuration, set that webhook URL and verify token{" "}
+                <code className="text-xs">META_VERIFY_TOKEN</code>. Subscribe to{" "}
+                <strong>messages</strong> and <strong>message_status</strong>.
               </p>
             </div>
           ) : null}
@@ -499,12 +538,19 @@ export default function ChannelsPage() {
             ) : null}
             <Button
               onClick={() => void confirm(pending?.id === "instagram" ? "facebook" : undefined)}
-              disabled={busy}
+              disabled={
+                busy ||
+                (pending?.id === "whatsapp" &&
+                  !pending.connected &&
+                  (!waPhoneId.trim() || !waToken.trim()))
+              }
             >
               {busy
                 ? "Working…"
                 : pending?.id === "email" && !pending.connected
                   ? "Continue with Google"
+                  : pending?.id === "whatsapp" && !pending.connected
+                    ? "Connect this number"
                   : pending?.id === "instagram" && !pending.connected
                     ? "Connect via Facebook Page"
                     : "Confirm"}
