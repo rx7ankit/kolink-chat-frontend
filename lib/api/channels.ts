@@ -68,6 +68,17 @@ export async function connectWhatsApp(input: {
   });
 }
 
+export async function completeWhatsAppEmbeddedSignup(input: {
+  code: string;
+  waba_id?: string;
+  phone_number_id?: string;
+}) {
+  return api<ApiChannel>(workspacePath("/channels/whatsapp/embedded-signup"), {
+    method: "POST",
+    body: input,
+  });
+}
+
 export async function disconnectChannel(channel: string) {
   return api<ApiChannel>(workspacePath(`/channels/${channel}`), {
     method: "PATCH",
@@ -114,6 +125,14 @@ export type MetaStatus = {
   whatsapp: MetaProbe;
   page: MetaProbe;
   instagram: MetaProbe;
+  whatsapp_embedded_signup?: {
+    ready: boolean;
+    app_id: string;
+    config_id: string;
+    graph_version: string;
+    next_step: string;
+    missing: string[];
+  };
 };
 
 export async function getMetaStatus() {

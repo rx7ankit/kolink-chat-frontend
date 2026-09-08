@@ -17,6 +17,7 @@ import {
 import {
   connectChannelDev,
   connectWhatsApp,
+  completeWhatsAppEmbeddedSignup,
   disconnectAllChannels,
   disconnectChannel,
   getChannelProfile,
@@ -30,6 +31,13 @@ import {
 } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import { oauthCallbackUrl, webhookUrl } from "@/lib/api/url";
+import {
+  facebookSdkReady,
+  listenWhatsAppEmbeddedSignup,
+  loadFacebookSdk,
+  loginWhatsAppEmbeddedSignup,
+  type WhatsAppSignupSession,
+} from "@/lib/meta/facebook-sdk";
 import { channels as catalog } from "@/lib/mock";
 import type { Channel, ChannelId } from "@/lib/mock";
 
@@ -79,6 +87,7 @@ export default function ChannelsPage() {
   const [waToken, setWaToken] = useState("");
   const [waPhoneId, setWaPhoneId] = useState("");
   const [waWaba, setWaWaba] = useState("");
+  const [waAdvanced, setWaAdvanced] = useState(false);
 
   const refreshProfiles = useCallback(async (rows: ChannelCardItem[]) => {
     const targets = rows.filter((row) => row.connected && PROFILE_CHANNELS.has(row.id));
@@ -162,10 +171,20 @@ export default function ChannelsPage() {
       setWaToken("");
       setWaPhoneId("");
       setWaWaba("");
+      setWaAdvanced(false);
     }
     if (!["instagram", "messenger", "facebook", "whatsapp"].includes(pending.id)) return;
     void getMetaStatus()
-      .then(setMeta)
+      .then((status) => {
+        setMeta(status);
+        const es = status.whatsapp_embedded_signup;
+        if (pending.id === "whatsapp" && es?.app_id) {
+          if (!es.ready) setWaAdvanced(true);
+          void loadFacebookSdk(es.app_id, es.graph_version || status.graph_version).catch(() => {
+            toast.error("Could not load Meta. Check that chat.getkolink.com is in Facebook Login allowed domains.");
+          });
+        }
+      })
       .catch(() => setMeta(null));
   }, [pending]);
 
@@ -236,6 +255,10 @@ export default function ChannelsPage() {
         await disconnectChannel(pending.id);
         toast.success(`${pending.name} disconnected`);
       } else if (pending.id === "whatsapp") {
+        if (!waAdvanced) {
+          toast.error("Use Continue with Meta, or open Cloud API credentials");
+          return;
+        }
         if (!waPhoneId.trim() || !waToken.trim()) {
           toast.error("Phone number ID and access token are required");
           return;
@@ -279,6 +302,50 @@ export default function ChannelsPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function launchWhatsAppMeta() {
+    const es = meta?.whatsapp_embedded_signup;
+    if (!es?.ready || !es.config_id) {
+      toast.error(es?.next_step || "Finish Become Tech Provider in Meta, then set WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID.");
+      return;
+    }
+    if (!facebookSdkReady()) {
+      toast.error("Meta is still loading. Wait a second and try again.");
+      return;
+    }
+    setBusy(true);
+    const session: WhatsAppSignupSession = { waba_id: null, phone_number_id: null };
+    const stop = listenWhatsAppEmbeddedSignup(session);
+    loginWhatsAppEmbeddedSignup(es.config_id, (code) => {
+      void (async () => {
+        if (!code) {
+          stop();
+          setBusy(false);
+          toast.error("WhatsApp signup was cancelled");
+          return;
+        }
+        const started = Date.now();
+        while (!session.waba_id && Date.now() - started < 4000) {
+          await new Promise((resolve) => window.setTimeout(resolve, 200));
+        }
+        try {
+          await completeWhatsAppEmbeddedSignup({
+            code,
+            waba_id: session.waba_id || undefined,
+            phone_number_id: session.phone_number_id || undefined,
+          });
+          toast.success("WhatsApp connected");
+          await reload();
+          setPending(null);
+        } catch (error) {
+          toast.error(error instanceof ApiError ? error.detail : "WhatsApp signup failed");
+        } finally {
+          stop();
+          setBusy(false);
+        }
+      })();
+    });
   }
 
   const profileItem = profileChannel ? items.find((item) => item.id === profileChannel) : null;
@@ -339,7 +406,7 @@ export default function ChannelsPage() {
               {pending?.connected
                 ? "This removes the live connection for this workspace. Your inbox history stays intact."
                 : pending?.id === "whatsapp"
-                  ? "Each workspace connects its own WhatsApp Business number. Paste Cloud API credentials from Meta → WhatsApp → API Setup."
+                  ? "Continue with Meta to connect an existing WhatsApp number or add a new one. Cloud API paste is only if you already have a token."
                   : pending?.id === "linkedin"
                     ? "Sign in with LinkedIn to connect your Company Page. Comments sync to Inbox → Comments; Page DMs need Messaging API partner access."
                   : pending?.id === "instagram"
@@ -358,42 +425,67 @@ export default function ChannelsPage() {
           {pending?.id === "whatsapp" && !pending.connected ? (
             <div className="space-y-3 text-sm">
               <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                This workspace gets <strong>its own</strong> WhatsApp number. Messages to that number
-                stay in this inbox. Do not reuse another workspace’s token.
+                This workspace gets <strong>its own</strong> WhatsApp number. Meta’s Embedded Signup lets
+                the client connect a number they already use (including WhatsApp Business app) or add a new
+                one. Messages stay in this inbox.
               </p>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Phone number ID</p>
-                <input
-                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                  placeholder="123456789012345"
-                  value={waPhoneId}
-                  onChange={(e) => setWaPhoneId(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Access token</p>
-                <input
-                  type="password"
-                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                  placeholder="EAAG…"
-                  value={waToken}
-                  onChange={(e) => setWaToken(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  WhatsApp Business Account ID (recommended)
+              {meta?.whatsapp_embedded_signup?.ready ? (
+                <p className="text-xs text-muted-foreground">
+                  In the Meta popup they can pick an existing number, verify a number they own, or claim a
+                  555 number if Meta offers it. Then they add a payment method on their WhatsApp Business
+                  account.
                 </p>
-                <input
-                  className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                  placeholder="WABA ID"
-                  value={waWaba}
-                  onChange={(e) => setWaWaba(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
+              ) : (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  {meta?.whatsapp_embedded_signup?.next_step ||
+                    "Finish Become Tech Provider in Meta, then set WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID on the API."}
+                </p>
+              )}
+              {waAdvanced ? (
+                <>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Phone number ID</p>
+                    <input
+                      className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                      placeholder="123456789012345"
+                      value={waPhoneId}
+                      onChange={(e) => setWaPhoneId(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Access token</p>
+                    <input
+                      type="password"
+                      className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                      placeholder="EAAG…"
+                      value={waToken}
+                      onChange={(e) => setWaToken(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      WhatsApp Business Account ID (recommended)
+                    </p>
+                    <input
+                      className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
+                      placeholder="WABA ID"
+                      value={waWaba}
+                      onChange={(e) => setWaWaba(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline underline-offset-2"
+                  onClick={() => setWaAdvanced(true)}
+                >
+                  I already have Cloud API credentials
+                </button>
+              )}
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook callback URL</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
@@ -401,9 +493,9 @@ export default function ChannelsPage() {
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
-                In Meta → WhatsApp → Configuration, set that webhook URL and verify token{" "}
+                KoLink’s Meta app receives all client WhatsApp webhooks at that URL. Verify token is{" "}
                 <code className="text-xs">META_VERIFY_TOKEN</code>. Subscribe to{" "}
-                <strong>messages</strong> and <strong>message_status</strong>.
+                <strong>messages</strong>, <strong>message_status</strong>, and <strong>account_update</strong>.
               </p>
             </div>
           ) : null}
@@ -536,25 +628,31 @@ export default function ChannelsPage() {
                 {busy ? "Working…" : "Instagram Login"}
               </Button>
             ) : null}
-            <Button
-              onClick={() => void confirm(pending?.id === "instagram" ? "facebook" : undefined)}
-              disabled={
-                busy ||
-                (pending?.id === "whatsapp" &&
-                  !pending.connected &&
-                  (!waPhoneId.trim() || !waToken.trim()))
-              }
-            >
-              {busy
-                ? "Working…"
-                : pending?.id === "email" && !pending.connected
-                  ? "Continue with Google"
-                  : pending?.id === "whatsapp" && !pending.connected
-                    ? "Connect this number"
-                  : pending?.id === "instagram" && !pending.connected
-                    ? "Connect via Facebook Page"
-                    : "Confirm"}
-            </Button>
+            {pending?.id === "whatsapp" && !pending.connected && !waAdvanced ? (
+              <Button onClick={launchWhatsAppMeta} disabled={busy || !meta?.whatsapp_embedded_signup?.ready}>
+                {busy ? "Working…" : "Continue with Meta"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => void confirm(pending?.id === "instagram" ? "facebook" : undefined)}
+                disabled={
+                  busy ||
+                  (pending?.id === "whatsapp" &&
+                    !pending.connected &&
+                    (!waPhoneId.trim() || !waToken.trim()))
+                }
+              >
+                {busy
+                  ? "Working…"
+                  : pending?.id === "email" && !pending.connected
+                    ? "Continue with Google"
+                    : pending?.id === "whatsapp" && !pending.connected
+                      ? "Connect this number"
+                    : pending?.id === "instagram" && !pending.connected
+                      ? "Connect via Facebook Page"
+                      : "Confirm"}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
