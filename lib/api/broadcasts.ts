@@ -112,7 +112,11 @@ export async function duplicateBroadcast(id: string) {
 }
 
 export async function deleteBroadcast(id: string) {
-  return api<{ detail: string }>(workspacePath(`/broadcasts/${id}`), { method: "DELETE" });
+  return api<ApiBroadcast | { detail: string }>(workspacePath(`/broadcasts/${id}`), { method: "DELETE" });
+}
+
+export function isDeletedBroadcast(row: ApiBroadcast | { detail: string }): row is ApiBroadcast {
+  return "status" in row && row.status === "deleted";
 }
 
 export async function purgeDemoBroadcasts() {

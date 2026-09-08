@@ -10,8 +10,9 @@ export type BroadcastStatus =
   | "processing"
   | "published"
   | "failed"
-  | "partially_failed";
-export type PlatformRunStatus = "pending" | "scheduled" | "processing" | "published" | "failed";
+  | "partially_failed"
+  | "deleted";
+export type PlatformRunStatus = "pending" | "scheduled" | "processing" | "published" | "failed" | "deleted";
 
 export type PlatformStatus = {
   status: PlatformRunStatus;
@@ -89,6 +90,7 @@ export function overallBadgeVariant(status: BroadcastStatus | string) {
   if (status === "published" || status === "sent") return "mint" as const;
   if (status === "scheduled" || status === "processing") return "sky" as const;
   if (status === "failed" || status === "partially_failed") return "rose" as const;
+  if (status === "deleted") return "muted" as const;
   return "muted" as const;
 }
 
@@ -97,5 +99,6 @@ export function statusLabel(status: string) {
   if (status === "social_post") return "Social post";
   if (status === "audience_dm") return "Audience DM";
   if (status === "sent") return "published";
+  if (status === "deleted") return "Deleted";
   return status.replaceAll("_", " ");
 }

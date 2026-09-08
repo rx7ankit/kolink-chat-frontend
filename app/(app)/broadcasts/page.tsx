@@ -34,6 +34,7 @@ import {
 import {
   deleteBroadcast,
   duplicateBroadcast,
+  isDeletedBroadcast,
   listBroadcasts,
   toUiBroadcast,
 } from "@/lib/api/broadcasts";
@@ -118,7 +119,7 @@ export default function BroadcastsPage() {
               </TableRow>
             ) : null}
             {pager.slice.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} className={item.status === "deleted" ? "opacity-70" : undefined}>
                 <TableCell>
                   <Link href={`/broadcasts/${item.id}`} className="flex items-center gap-3">
                     {thumbnail(item) || (
@@ -178,7 +179,9 @@ export default function BroadcastsPage() {
                       >
                         Duplicate
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setPendingDelete(item)}>Delete</DropdownMenuItem>
+                      {item.status !== "deleted" ? (
+                        <DropdownMenuItem onClick={() => setPendingDelete(item)}>Delete</DropdownMenuItem>
+                      ) : null}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -200,7 +203,11 @@ export default function BroadcastsPage() {
           <DialogHeader>
             <DialogTitle>Delete broadcast</DialogTitle>
             <DialogDescription>
-              {pendingDelete ? `Delete “${pendingDelete.name}”? This cannot be undone.` : ""}
+              {pendingDelete
+                ? pendingDelete.platformStatuses.instagram?.status === "published"
+                  ? `Remove “${pendingDelete.name}” from Instagram? It will stay in koLink marked as Deleted.`
+                  : `Delete “${pendingDelete.name}”? This cannot be undone.`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
@@ -214,9 +221,15 @@ export default function BroadcastsPage() {
                 if (!pendingDelete) return;
                 setBusy(true);
                 try {
-                  await deleteBroadcast(pendingDelete.id);
-                  setRows((current) => current.filter((row) => row.id !== pendingDelete.id));
-                  toast.success("Broadcast deleted");
+                  const result = await deleteBroadcast(pendingDelete.id);
+                  if (isDeletedBroadcast(result)) {
+                    const mapped = toUiBroadcast(result);
+                    setRows((current) => current.map((row) => (row.id === mapped.id ? mapped : row)));
+                    toast.success("Removed from Instagram");
+                  } else {
+                    setRows((current) => current.filter((row) => row.id !== pendingDelete.id));
+                    toast.success("Broadcast deleted");
+                  }
                   setPendingDelete(null);
                 } catch (error) {
                   toast.error(error instanceof ApiError ? error.detail : "Delete failed");

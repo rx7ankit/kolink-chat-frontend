@@ -11,7 +11,7 @@ import { PlatformStatusList } from "@/components/broadcasts/platform-status";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteBroadcast, duplicateBroadcast, getBroadcast, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
+import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
 import { listChannels, type ApiChannel } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import type { Broadcast } from "@/lib/mock";
@@ -41,6 +41,8 @@ export default function BroadcastDetailPage() {
   }
 
   const canPublish = ["draft", "scheduled", "failed", "partially_failed"].includes(item.status);
+  const canDelete = item.status !== "deleted";
+  const igLive = item.platformStatuses.instagram?.status === "published";
 
   return (
     <div className="page-shell mx-auto max-w-4xl">
@@ -159,16 +161,28 @@ export default function BroadcastDetailPage() {
             postMode={item.postMode}
             accountHandle={channels.find((c) => c.channel === preview)?.handle ?? undefined}
           />
+          {canDelete ? (
           <Button
             className="mt-4 w-full"
             variant="outline"
             disabled={busy}
             onClick={async () => {
+              const ok = window.confirm(
+                igLive
+                  ? "Remove this post from Instagram? It will stay in koLink marked as Deleted."
+                  : "Delete this broadcast from koLink? This cannot be undone.",
+              );
+              if (!ok) return;
               setBusy(true);
               try {
-                await deleteBroadcast(item.id);
-                toast.success("Broadcast deleted");
-                router.push("/broadcasts");
+                const result = await deleteBroadcast(item.id);
+                if (isDeletedBroadcast(result)) {
+                  setItem(toUiBroadcast(result));
+                  toast.success("Removed from Instagram");
+                } else {
+                  toast.success("Broadcast deleted");
+                  router.push("/broadcasts");
+                }
               } catch (error) {
                 toast.error(error instanceof ApiError ? error.detail : "Delete failed");
               } finally {
@@ -178,6 +192,7 @@ export default function BroadcastDetailPage() {
           >
             Delete
           </Button>
+          ) : null}
         </aside>
       </div>
     </div>

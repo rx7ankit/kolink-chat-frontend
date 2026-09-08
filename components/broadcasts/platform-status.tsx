@@ -11,6 +11,7 @@ const DOT: Record<string, string> = {
   processing: "bg-sky-500",
   pending: "bg-neutral-300",
   failed: "bg-rose-500",
+  deleted: "bg-neutral-400",
 };
 
 export function PlatformStatusDot({ status, className }: { status: string; className?: string }) {
@@ -41,7 +42,7 @@ export function PlatformStatusList({
             <div key={platform} className="inline-flex items-center gap-1.5 rounded-full border border-white/50 bg-white/50 px-2 py-0.5">
               <ChannelIcon channel={asChannelId(platform)} size={12} />
               <PlatformStatusDot status={status} />
-              {showLinks && row?.permalink ? (
+              {showLinks && status !== "deleted" && row?.permalink ? (
                 <a
                   href={row.permalink}
                   target="_blank"
@@ -50,6 +51,8 @@ export function PlatformStatusList({
                 >
                   View post
                 </a>
+              ) : status === "deleted" ? (
+                <span className="text-[11px] font-medium text-muted-foreground">Deleted</span>
               ) : row?.simulated ? (
                 <span className="text-[11px] font-medium text-amber-700">Simulated only</span>
               ) : row?.error ? (
