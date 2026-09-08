@@ -12,6 +12,7 @@ export type ChatMessage = {
   subject?: string;
   htmlBody?: string;
   gmailCategory?: string;
+  liked?: boolean;
 };
 
 export type Conversation = {

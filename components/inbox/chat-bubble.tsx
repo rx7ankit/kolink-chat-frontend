@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Download, EyeOff, MoreHorizontal, Pencil, Reply, Trash2 } from "lucide-react";
+import { Copy, Download, EyeOff, Heart, MoreHorizontal, Pencil, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { MessageContent, inferMediaKind } from "@/components/inbox/message-content";
@@ -30,6 +30,35 @@ function canEditMessage(message: ChatMessage) {
   return status === "local" || status === "failed";
 }
 
+function CommentLikeButton({
+  liked,
+  pending,
+  onToggle,
+}: {
+  liked: boolean;
+  pending: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={pending}
+      className="mb-0.5 flex w-9 shrink-0 flex-col items-center gap-0.5 disabled:opacity-50"
+      aria-label={liked ? "Unlike comment" : "Like comment"}
+      aria-pressed={liked}
+    >
+      <Heart
+        className={cn("h-6 w-6", liked ? "fill-[#ed4956] text-[#ed4956]" : "text-slate-500")}
+        strokeWidth={liked ? 1.5 : 1.75}
+      />
+      <span className={cn("text-[10px] font-medium leading-none", liked ? "text-[#ed4956]" : "text-slate-500")}>
+        Like
+      </span>
+    </button>
+  );
+}
+
 export function ChatBubble({
   message,
   contact,
@@ -40,6 +69,7 @@ export function ChatBubble({
   onReply,
   onDelete,
   onHide,
+  onLike,
   onEdit,
 }: {
   message: ChatMessage;
@@ -51,6 +81,7 @@ export function ChatBubble({
   onReply: (message: ChatMessage) => void;
   onDelete: (message: ChatMessage) => void;
   onHide?: (message: ChatMessage) => void;
+  onLike?: (message: ChatMessage) => Promise<void> | void;
   onEdit?: (message: ChatMessage, body: string) => Promise<void> | void;
 }) {
   const mine = message.from !== "contact";
@@ -61,6 +92,7 @@ export function ChatBubble({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
   const [saving, setSaving] = useState(false);
+  const [liking, setLiking] = useState(false);
 
   async function copyText() {
     try {
@@ -86,6 +118,16 @@ export function ChatBubble({
       /* parent toasts */
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleLike() {
+    if (!onLike || liking) return;
+    setLiking(true);
+    try {
+      await onLike(message);
+    } finally {
+      setLiking(false);
     }
   }
 
@@ -131,6 +173,9 @@ export function ChatBubble({
             <MessageContent message={message} isEmail={isEmail && message.from === "contact"} />
           )}
         </div>
+        {onLike ? (
+          <CommentLikeButton liked={Boolean(message.liked)} pending={liking} onToggle={() => void toggleLike()} />
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

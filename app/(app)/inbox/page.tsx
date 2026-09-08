@@ -64,6 +64,7 @@ import {
   patchConversation,
   patchMessage,
   sendMessage,
+  setMessageLiked,
   toInboxThread,
   uploadInboxFile,
   isPromoEmail,
@@ -979,6 +980,24 @@ export default function InboxPage() {
     }
   }
 
+  async function toggleCommentLike(message: ChatMessage) {
+    if (!active) return;
+    const next = !message.liked;
+    patchThread(active.id, (thread) => ({
+      ...thread,
+      messages: thread.messages.map((item) => (item.id === message.id ? { ...item, liked: next } : item)),
+    }));
+    try {
+      await setMessageLiked(active.id, message.id, next);
+    } catch (error) {
+      patchThread(active.id, (thread) => ({
+        ...thread,
+        messages: thread.messages.map((item) => (item.id === message.id ? { ...item, liked: message.liked } : item)),
+      }));
+      toast.error(error instanceof ApiError ? error.detail : "Could not update like");
+    }
+  }
+
   async function createLabel() {
     const name = newLabelName.trim();
     if (!name) {
@@ -1627,6 +1646,11 @@ export default function InboxPage() {
                         onDelete={(item) => void removeMessage(item)}
                         onEdit={(item, body) => editMessage(item, body)}
                         onHide={active.threadKind === "comment" ? (item) => void hideComment(item) : undefined}
+                        onLike={
+                          active.threadKind === "comment" && active.channel === "instagram"
+                            ? (item) => toggleCommentLike(item)
+                            : undefined
+                        }
                       />
                       {index === active.messages.length - 1 && message.from === "agent" ? (
                         <p className="pr-9 text-right text-[11px] text-slate-400">

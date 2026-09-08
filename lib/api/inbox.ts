@@ -43,6 +43,7 @@ export type ApiMessage = {
   subject?: string | null;
   html_body?: string | null;
   gmail_category?: string | null;
+  liked?: boolean;
 };
 
 export type ApiConversation = {
@@ -274,6 +275,7 @@ export function toInboxThread(
       subject: message.subject ?? undefined,
       htmlBody: message.html_body ?? undefined,
       gmailCategory: message.gmail_category ?? undefined,
+      liked: Boolean(message.liked),
     })),
     contact: toUiContact(row.contact),
     subject: row.subject ?? undefined,
@@ -397,6 +399,13 @@ export async function patchMessage(conversationId: string, messageId: string, bo
 export async function hideMessage(conversationId: string, messageId: string) {
   return api<ApiMessage>(workspacePath(`/conversations/${conversationId}/messages/${messageId}/hide`), {
     method: "POST",
+  });
+}
+
+export async function setMessageLiked(conversationId: string, messageId: string, liked: boolean) {
+  return api<ApiMessage>(workspacePath(`/conversations/${conversationId}/messages/${messageId}/like`), {
+    method: "POST",
+    body: { liked },
   });
 }
 
