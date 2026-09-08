@@ -143,7 +143,7 @@ export function WorkspaceSwitcher({
                 id="workspace-name"
                 value={newName}
                 onChange={(event) => setNewName(event.target.value)}
-                placeholder="e.g. Studio North"
+                placeholder="e.g. KoLink"
                 autoFocus
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {

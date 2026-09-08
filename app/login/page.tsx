@@ -25,7 +25,7 @@ export default function LoginPage() {
         <Logo />
         <h1 className="mt-6 text-2xl font-semibold tracking-tight">Welcome back</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sign in to your workspace API account.
+          Sign in to your koLink workspace.
         </p>
         <form
           className="mt-6 space-y-4"
@@ -33,7 +33,7 @@ export default function LoginPage() {
             event.preventDefault();
             setPending(true);
             try {
-              await login(email, password);
+              await login(email.trim(), password);
               toast.success("Signed in");
               router.push("/home");
             } catch (error) {

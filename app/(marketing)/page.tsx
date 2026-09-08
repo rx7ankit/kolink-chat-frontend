@@ -43,11 +43,11 @@ export default function LandingPage() {
           <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
             <Button size="lg" asChild>
               <Link href="/signup">
-                Start free mock workspace <ArrowRight className="h-4 w-4" />
+                Start free <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/home">Peek the dashboard</Link>
+              <Link href="/login">Log in</Link>
             </Button>
           </div>
         </div>

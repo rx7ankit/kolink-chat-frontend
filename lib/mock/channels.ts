@@ -24,7 +24,7 @@ export const channels: Channel[] = [
   {
     id: "instagram",
     name: "Instagram",
-    handle: "@bloomandco",
+    handle: "@getkolink",
     connected: true,
     status: "healthy",
     messages7d: 1842,
@@ -35,7 +35,7 @@ export const channels: Channel[] = [
   {
     id: "messenger",
     name: "Messenger",
-    handle: "Bloom & Co.",
+    handle: "KoLink",
     connected: true,
     status: "healthy",
     messages7d: 964,
@@ -57,7 +57,7 @@ export const channels: Channel[] = [
   {
     id: "facebook",
     name: "Facebook",
-    handle: "Bloom & Co.",
+    handle: "KoLink",
     connected: false,
     status: "disconnected",
     messages7d: 0,
@@ -68,7 +68,7 @@ export const channels: Channel[] = [
   {
     id: "threads",
     name: "Threads",
-    handle: "@bloomandco",
+    handle: "@getkolink",
     connected: false,
     status: "disconnected",
     messages7d: 0,
@@ -79,7 +79,7 @@ export const channels: Channel[] = [
   {
     id: "x",
     name: "X",
-    handle: "@bloomandco",
+    handle: "@getkolink",
     connected: true,
     status: "healthy",
     messages7d: 328,
@@ -101,7 +101,7 @@ export const channels: Channel[] = [
   {
     id: "email",
     name: "Email",
-    handle: "hello@bloomand.co",
+    handle: "hello@getkolink.com",
     connected: false,
     status: "disconnected",
     messages7d: 0,

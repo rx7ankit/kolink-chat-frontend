@@ -47,12 +47,7 @@ function pickWorkspace(list: Workspace[], preferredId: string | null) {
     const match = list.find((item) => item.id === preferredId);
     if (match) return match;
   }
-  return (
-    list.find((item) => item.slug === "studio-north") ??
-    list.find((item) => item.slug === "bloom-and-co") ??
-    list[0] ??
-    null
-  );
+  return list[0] ?? null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -69,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!getToken()) {
+    const token = getToken();
+    if (!token) {
       setUser(null);
       setWorkspace(null);
       setWorkspaces([]);
@@ -78,15 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const [current, list] = await Promise.all([me(), listWorkspaces()]);
+      if (getToken() !== token) return;
       setUser(current);
       applyWorkspaces(list);
     } catch {
+      if (getToken() !== token) return;
       apiLogout();
       setUser(null);
       setWorkspace(null);
       setWorkspaces([]);
     } finally {
-      setLoading(false);
+      if (getToken() === token || !getToken()) setLoading(false);
     }
   }, [applyWorkspaces]);
 

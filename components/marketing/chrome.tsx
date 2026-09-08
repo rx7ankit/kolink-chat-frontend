@@ -78,6 +78,13 @@ export function MarketingHeader() {
             >
               Log in
             </Link>
+            <Link
+              href="/signup"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-muted"
+            >
+              Get started
+            </Link>
           </div>
         </SheetContent>
       </Sheet>

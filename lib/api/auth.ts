@@ -28,10 +28,7 @@ export async function login(email: string, password: string) {
   });
   setToken(token.access_token);
   const workspaces = await api<Workspace[]>("/workspaces");
-  const preferred =
-    workspaces.find((item) => item.slug === "studio-north") ??
-    workspaces.find((item) => item.slug === "bloom-and-co") ??
-    workspaces[0];
+  const preferred = workspaces[0];
   if (preferred) setWorkspaceId(preferred.id);
   const user = await api<User>("/auth/me");
   return { user, workspace: preferred ?? workspaces[0] ?? null, token };

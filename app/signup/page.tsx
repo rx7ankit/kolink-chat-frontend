@@ -26,7 +26,9 @@ export default function SignupPage() {
       <div className="w-full max-w-sm glass rounded-3xl p-8">
         <Logo />
         <h1 className="mt-6 text-2xl font-semibold tracking-tight">Create your workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Creates a real account on the API.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sign up to connect Instagram, WhatsApp, X, LinkedIn, and email in one inbox.
+        </p>
         <form
           className="mt-6 space-y-4"
           onSubmit={async (event) => {
@@ -34,13 +36,13 @@ export default function SignupPage() {
             setPending(true);
             try {
               await register({
-                email,
-                full_name: fullName,
+                email: email.trim(),
+                full_name: fullName.trim(),
                 password,
-                workspace_name: workspaceName || `${fullName}'s workspace`,
+                workspace_name: (workspaceName || `${fullName}'s workspace`).trim(),
               });
               toast.success("Workspace created");
-              router.push("/onboarding");
+              router.push("/channels");
             } catch (error) {
               toast.error(error instanceof ApiError ? error.detail : "Could not create account");
             } finally {
@@ -63,7 +65,7 @@ export default function SignupPage() {
               id="workspace"
               value={workspaceName}
               onChange={(event) => setWorkspaceName(event.target.value)}
-              placeholder="Bloom & Co."
+              placeholder="KoLink"
             />
           </div>
           <div className="space-y-2">
@@ -84,6 +86,7 @@ export default function SignupPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               minLength={8}
+              autoComplete="new-password"
               required
             />
           </div>

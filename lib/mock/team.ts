@@ -12,8 +12,8 @@ export type TeamMember = {
 export const team: TeamMember[] = [
   {
     id: "u1",
-    name: "Ankit Rao",
-    email: "ankit@bloomand.co",
+    name: "Ankit Tiwari",
+    email: "ankit@getkolink.com",
     role: "Owner",
     inboxSeat: true,
     lastActive: "Just now",
@@ -21,7 +21,7 @@ export const team: TeamMember[] = [
   {
     id: "u2",
     name: "Aisha Rahman",
-    email: "aisha@bloomand.co",
+    email: "aisha@getkolink.com",
     role: "Admin",
     inboxSeat: true,
     lastActive: "12m ago",
@@ -29,7 +29,7 @@ export const team: TeamMember[] = [
   {
     id: "u3",
     name: "Leo Park",
-    email: "leo@bloomand.co",
+    email: "leo@getkolink.com",
     role: "Editor",
     inboxSeat: false,
     lastActive: "Yesterday",
@@ -37,7 +37,7 @@ export const team: TeamMember[] = [
   {
     id: "u4",
     name: "Mira Cole",
-    email: "mira@bloomand.co",
+    email: "mira@getkolink.com",
     role: "Inbox Agent",
     inboxSeat: true,
     lastActive: "3h ago",
@@ -47,7 +47,7 @@ export const team: TeamMember[] = [
 export const currentUser = team[0];
 
 export const workspace = {
-  name: "Bloom & Co.",
+  name: "KoLink",
   timezone: "America/Los_Angeles",
   language: "English",
   plan: "Growth",
@@ -69,7 +69,7 @@ export const userFields = [
 ];
 
 export const botFields = [
-  { id: "bf1", name: "store_url", value: "https://bloomand.co" },
+  { id: "bf1", name: "store_url", value: "https://getkolink.com" },
   { id: "bf2", name: "support_hours", value: "Tue–Sat 10–6 PT" },
 ];
 
