@@ -119,6 +119,21 @@ export function isDeletedBroadcast(row: ApiBroadcast | { detail: string }): row 
   return "status" in row && row.status === "deleted";
 }
 
+export function isLiveInstagramBroadcast(item: {
+  channel?: string;
+  platforms?: string[];
+  status?: string;
+  postMode?: string;
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  if ((item.postMode || "social_post") === "audience_dm") return false;
+  const platforms = item.platforms?.length ? item.platforms : item.channel ? [item.channel] : [];
+  if (!platforms.includes("instagram")) return false;
+  const ig = item.platformStatuses?.instagram?.status;
+  if (ig === "published" || ig === "deleted") return true;
+  return item.status === "published" || item.status === "partially_failed" || item.status === "sent";
+}
+
 export async function purgeDemoBroadcasts() {
   return api<{ detail: string }>(workspacePath("/broadcasts/purge-demo"), { method: "POST" });
 }

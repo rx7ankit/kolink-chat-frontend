@@ -11,7 +11,7 @@ import { PlatformStatusList } from "@/components/broadcasts/platform-status";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
+import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveInstagramBroadcast, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
 import { listChannels, type ApiChannel } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import type { Broadcast } from "@/lib/mock";
@@ -42,7 +42,7 @@ export default function BroadcastDetailPage() {
 
   const canPublish = ["draft", "scheduled", "failed", "partially_failed"].includes(item.status);
   const canDelete = item.status !== "deleted";
-  const igLive = item.platformStatuses.instagram?.status === "published";
+  const igLive = isLiveInstagramBroadcast(item);
 
   return (
     <div className="page-shell mx-auto max-w-4xl">
@@ -179,6 +179,8 @@ export default function BroadcastDetailPage() {
                 if (isDeletedBroadcast(result)) {
                   setItem(toUiBroadcast(result));
                   toast.success("Removed from Instagram");
+                } else if (igLive) {
+                  toast.error("Could not remove the post from Instagram. The listing was left unchanged.");
                 } else {
                   toast.success("Broadcast deleted");
                   router.push("/broadcasts");
