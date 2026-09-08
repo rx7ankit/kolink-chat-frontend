@@ -1,0 +1,185 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.965 0.02 240);
+  --foreground: oklch(0.26 0.04 250);
+  --card: rgb(255 255 255 / 0.58);
+  --card-foreground: oklch(0.26 0.04 250);
+  --popover: rgb(255 255 255 / 0.2);
+  --popover-foreground: oklch(0.26 0.04 250);
+  --primary: oklch(0.5 0.16 255);
+  --primary-foreground: oklch(0.99 0.01 240);
+  --secondary: oklch(0.93 0.03 240 / 0.75);
+  --secondary-foreground: oklch(0.32 0.05 250);
+  --muted: oklch(0.95 0.02 240 / 0.55);
+  --muted-foreground: oklch(0.5 0.03 250);
+  --accent: oklch(0.93 0.04 250 / 0.7);
+  --accent-foreground: oklch(0.32 0.08 250);
+  --destructive: oklch(0.58 0.18 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 0.42);
+  --input: oklch(1 0 0 / 0.5);
+  --ring: oklch(0.5 0.16 255);
+  --chart-1: oklch(0.5 0.16 255);
+  --chart-2: oklch(0.62 0.12 230);
+  --chart-3: oklch(0.7 0.08 200);
+  --chart-4: oklch(0.68 0.08 280);
+  --chart-5: oklch(0.78 0.06 70);
+  --radius: 1rem;
+  --sidebar: oklch(1 0.01 240 / 0.4);
+  --sidebar-foreground: oklch(0.26 0.04 250);
+  --sidebar-primary: oklch(0.5 0.16 255);
+  --sidebar-primary-foreground: oklch(0.99 0.01 240);
+  --sidebar-accent: oklch(0.9 0.05 250 / 0.55);
+  --sidebar-accent-foreground: oklch(0.28 0.08 250);
+  --sidebar-border: oklch(1 0 0 / 0.35);
+  --sidebar-ring: oklch(0.5 0.16 255);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-plus-jakarta);
+  --font-mono: var(--font-geist-mono);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  color: var(--foreground);
+}
+
+html {
+  background:
+    radial-gradient(1200px 640px at 8% -8%, oklch(0.82 0.1 250 / 0.55), transparent 55%),
+    radial-gradient(900px 520px at 100% 0%, oklch(0.88 0.08 220 / 0.5), transparent 50%),
+    radial-gradient(800px 480px at 80% 100%, oklch(0.9 0.06 260 / 0.4), transparent 45%),
+    oklch(0.96 0.02 240);
+  background-attachment: fixed;
+}
+
+body {
+  min-height: 100%;
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.011em;
+  background: transparent;
+}
+
+html.locale-zh,
+html.locale-zh body {
+  font-family: var(--font-noto-tc), var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: oklch(0.86 0.08 250);
+}
+
+/*
+ * Liquid glass — pure white, no blue chroma.
+ * Put -webkit-backdrop-filter BEFORE backdrop-filter. Lightning CSS (Tailwind 4)
+ * drops the unprefixed property when -webkit- comes second, and Chrome ignores
+ * -webkit-only. Keep saturate near 100–120% so page blues don't tint the glass.
+ */
+.glass {
+  background: rgb(255 255 255 / 0.58);
+  -webkit-backdrop-filter: blur(28px) saturate(115%);
+  backdrop-filter: blur(28px) saturate(115%);
+  border: 1px solid rgb(255 255 255 / 0.55);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.65);
+}
+
+.glass-strong {
+  background: rgb(255 255 255 / 0.68);
+  -webkit-backdrop-filter: blur(36px) saturate(115%);
+  backdrop-filter: blur(36px) saturate(115%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+/*
+ * Frosted menus — highly transparent white glass.
+ * FrostedGlass clears Radix popper translate3d so blur can sample the page.
+ */
+.glass-popover {
+  background: rgb(255 255 255 / 0.22);
+  border: 1px solid rgb(255 255 255 / 0.5);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55);
+  -webkit-backdrop-filter: blur(40px) saturate(100%);
+  backdrop-filter: blur(40px) saturate(100%);
+}
+
+.glass-field {
+  background: rgb(255 255 255 / 0.42);
+  -webkit-backdrop-filter: blur(18px) saturate(110%);
+  backdrop-filter: blur(18px) saturate(110%);
+  border: 1px solid rgb(255 255 255 / 0.5);
+}
+
+.soft-shadow {
+  box-shadow: none;
+}
+
+.dot-grid {
+  background-image: radial-gradient(oklch(0.75 0.05 250 / 0.28) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.page-shell {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-shell {
+    padding: 1.5rem;
+  }
+}
+
+/* Sheet panel: slide only (opacity stays solid — no fade) */
+.sheet-panel {
+  will-change: transform;
+  opacity: 1 !important;
+  --tw-enter-opacity: 1;
+  --tw-exit-opacity: 1;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
