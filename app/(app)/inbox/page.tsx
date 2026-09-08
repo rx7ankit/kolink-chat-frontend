@@ -118,13 +118,11 @@ const channelFilters: { id: "all" | ChannelId; label: string }[] = [
   { id: "instagram", label: channelMeta.instagram.label },
   { id: "whatsapp", label: channelMeta.whatsapp.label },
   { id: "telegram", label: channelMeta.telegram.label },
-  { id: "line", label: channelMeta.line.label },
   { id: "linkedin", label: channelMeta.linkedin.label },
   { id: "email", label: channelMeta.email.label },
   { id: "messenger", label: channelMeta.messenger.label },
   { id: "facebook", label: channelMeta.facebook.label },
   { id: "threads", label: channelMeta.threads.label },
-  { id: "tiktok", label: channelMeta.tiktok.label },
   { id: "x", label: channelMeta.x.label },
 ];
 
@@ -629,8 +627,6 @@ export default function InboxPage() {
               ? "No X DMs yet. Mentions appear in Comments. DMs need dm.read access on your X app."
               : channel === "telegram"
                 ? "No Telegram chats yet. Connect your personal Telegram, then wait a moment or tap Sync."
-              : channel === "line"
-                ? "No LINE chats yet. Connect your Official Account in Channels, set the webhook, then message the bot from LINE."
               : channel === "linkedin" && folder === "comments"
                 ? "No LinkedIn comments yet. Stay on Comments, tap Sync comments & chat. LinkedIn only lets apps read Company Page comments — not comments on a personal profile post."
               : channel === "linkedin"
@@ -639,10 +635,6 @@ export default function InboxPage() {
                 ? emailTab === "promotions"
                   ? "Promotions are hidden from Primary. Nothing in Promotions yet — tap Sync after connecting Gmail."
                   : "Primary inbox is empty. Promotions stay hidden until you tap Promotions. Connect Gmail in Channels, then tap Sync."
-              : channel === "tiktok" && folder === "comments"
-                ? "No TikTok comments yet. Connect TikTok, then tap Sync. Live comments need Business Messaging access."
-              : channel === "tiktok"
-                ? "No TikTok DMs yet. Profile and videos sync after Connect. Live DMs need TikTok Business Messaging credentials."
           : channel === "messenger" && folder === "comments"
         ? "Messenger chats appear under All chats, not Comments."
         : isCommentsView
@@ -733,7 +725,7 @@ export default function InboxPage() {
     try {
       const before = await getInboxRevision().catch(() => ({ revision: "" }));
       const connected = (await listChannels().catch(() => []))
-        .filter((row) => row.connected && ["instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "tiktok", "line", "linkedin"].includes(row.channel))
+        .filter((row) => row.connected && ["instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "linkedin"].includes(row.channel))
         .map((row) => row.channel);
       const notes: string[] = [];
       let linkedinImported = false;

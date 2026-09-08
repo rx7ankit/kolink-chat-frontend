@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Features" };
 const features = [
   {
     title: "Unified inbox",
-    body: "Open, closed, assigned, labeled. Reply to Instagram, WhatsApp, TikTok, and X in one thread list.",
+    body: "Open, closed, assigned, labeled. Reply to Instagram, WhatsApp, and X in one thread list.",
     icon: Inbox,
   },
   {
@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: "Channels",
-    body: "Connect Meta, X, TikTok, Telegram, LINE, LinkedIn, and email from one settings surface.",
+    body: "Connect Meta, X, Telegram, LinkedIn, and email from one settings surface.",
     icon: Radio,
   },
 ];

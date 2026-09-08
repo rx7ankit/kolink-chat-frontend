@@ -44,8 +44,6 @@ function channelPlatformLabel(channelId: ChannelId) {
     telegram: "Telegram",
     email: "Gmail",
     linkedin: "LinkedIn",
-    tiktok: "TikTok",
-    line: "LINE",
   };
   return labels[channelId] ?? channelId;
 }

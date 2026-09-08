@@ -10,10 +10,8 @@ export const channelMeta: Record<
   whatsapp: { label: "WhatsApp", file: "whatsapp.svg", color: "#25D366" },
   facebook: { label: "Facebook", file: "facebook.svg", color: "#1877F2" },
   threads: { label: "Threads", file: "threads.svg", color: "#111111" },
-  tiktok: { label: "TikTok", file: "tiktok.svg", color: "#111111" },
   x: { label: "X", file: "x.svg", color: "#111111" },
   telegram: { label: "Telegram", file: "telegram.svg", color: "#26A5E4" },
-  line: { label: "LINE", file: "line.svg", color: "#06C755" },
   linkedin: { label: "LinkedIn", file: "linkedin.svg", color: "#0A66C2" },
   email: { label: "Email", file: "gmail.svg", color: "#EA4335" },
 };

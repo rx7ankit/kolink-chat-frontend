@@ -4,7 +4,7 @@ import { detectMediaKind, type PostType, type PublishPlatformId } from "@/lib/pu
 function platformsRequiringMedia(platforms: PublishPlatformId[], postType: PostType): boolean {
   return platforms.some((platform) => {
     if (platform === "threads" || platform === "x" || platform === "linkedin") return false;
-    if (postType === "reel") return platform === "instagram" || platform === "tiktok";
+    if (postType === "reel") return platform === "instagram";
     if (postType === "story") return platform === "instagram";
     if (postType === "carousel") return platform === "instagram";
     return platform === "instagram" || platform === "facebook";

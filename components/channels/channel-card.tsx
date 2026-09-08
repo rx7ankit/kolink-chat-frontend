@@ -9,8 +9,8 @@ import type { ChannelProfileSummary } from "@/lib/api/channels";
 import type { Channel, ChannelId } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
-const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "telegram", "email", "tiktok", "line", "linkedin"]);
-const SYNC_CHANNELS = new Set<ChannelId>(["instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "tiktok", "line", "linkedin"]);
+const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "telegram", "email", "linkedin"]);
+const SYNC_CHANNELS = new Set<ChannelId>(["instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "linkedin"]);
 
 export type ChannelCardItem = Channel & {
   profile: ChannelProfileSummary | null;

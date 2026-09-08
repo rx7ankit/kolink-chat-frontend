@@ -35,8 +35,8 @@ import { ApiError } from "@/lib/api/client";
 import { channels as catalog } from "@/lib/mock";
 import type { Channel, ChannelId } from "@/lib/mock";
 
-const LIVE = new Set(["whatsapp", "instagram", "messenger", "facebook", "threads", "tiktok", "x", "telegram", "email", "line", "linkedin"]);
-const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "telegram", "email", "tiktok", "line", "linkedin"]);
+const LIVE = new Set(["whatsapp", "instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "linkedin"]);
+const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "telegram", "email", "linkedin"]);
 
 function emptyItems(): ChannelCardItem[] {
   return catalog.map((item) => ({
@@ -281,9 +281,6 @@ export default function ChannelsPage() {
       } else if (pending.id === "whatsapp") {
         await connectWhatsApp();
         toast.success(`${pending.name} connected from server credentials`);
-      } else if (pending.id === "line") {
-        await connectChannelDev(pending.id);
-        toast.success(`${pending.name} connected from server credentials`);
       } else if (pending.id === "telegram") {
         await submitTelegramLogin();
         return;
@@ -291,7 +288,7 @@ export default function ChannelsPage() {
         const start = await startChannelOAuth(pending.id);
         window.location.href = start.url;
         return;
-      } else if (pending.id === "tiktok" || pending.id === "x" || pending.id === "threads" || pending.id === "email") {
+      } else if (pending.id === "x" || pending.id === "threads" || pending.id === "email") {
         try {
           const start = await startChannelOAuth(pending.id);
           window.location.href = start.url;
@@ -328,7 +325,7 @@ export default function ChannelsPage() {
     <div className="page-shell">
       <PageHeader
         title="Channels"
-        description="Connect Instagram, Messenger, Facebook, Threads, TikTok, X, WhatsApp, Telegram, LINE, LinkedIn, and Gmail in one inbox."
+        description="Connect Instagram, Messenger, Facebook, Threads, X, WhatsApp, Telegram, LinkedIn, and Gmail in one inbox."
         actions={
           <Button variant="outline" size="sm" disabled={busy || loading} onClick={() => void resetAll()}>
             Reset all
@@ -381,8 +378,6 @@ export default function ChannelsPage() {
                 ? "This removes the live connection for this workspace. Your inbox history stays intact."
                 : pending?.id === "whatsapp"
                   ? "Uses WhatsApp Cloud API credentials from your server environment (WHATSAPP_* in API .env). No manual tokens needed."
-                  : pending?.id === "line"
-                    ? "Uses LINE Messaging API credentials from your server environment (LINE_CHANNEL_* in API .env). Messages arrive via webhook."
                   : pending?.id === "linkedin"
                     ? "Sign in with LinkedIn to connect your Company Page. Comments sync to Inbox → Comments; Page DMs need Messaging API partner access."
                   : pending?.id === "telegram"
@@ -395,8 +390,6 @@ export default function ChannelsPage() {
                       ? "Authorize KoLink on X (Twitter). Mentions appear in Comments; DMs appear in All chats if your X app has DM access."
                     : pending?.id === "email"
                       ? "Sign in with Google to connect your Gmail. Incoming mail and replies appear in Inbox → Email."
-                    : pending?.id === "tiktok"
-                      ? "Sign in with TikTok (Login Kit). Profile and videos sync into KoLink. Business Messaging credentials are needed for live DMs and comment replies."
                     : pending?.id === "messenger" || pending?.id === "facebook"
                       ? "Sign in with the Facebook account that manages your Page. KoLink connects one Page — DMs must be sent to that exact Page (1:1, not group). Both Facebook accounts must be App Testers in Meta → App roles."
                       : "Starts OAuth when available, otherwise uses dev credentials."}
@@ -428,29 +421,6 @@ export default function ChannelsPage() {
               <p className="text-xs text-muted-foreground">
                 Verify token: same as <code className="text-xs">META_VERIFY_TOKEN</code> on your API server.
                 Subscribe to <strong>messages</strong> and <strong>message_status</strong>.
-              </p>
-            </div>
-          ) : null}
-          {pending?.id === "line" && !pending.connected ? (
-            <div className="space-y-3 text-sm">
-              <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                Create a Messaging API channel at{" "}
-                <a href="https://developers.line.biz/" target="_blank" rel="noopener noreferrer" className="underline">
-                  developers.line.biz
-                </a>
-                , then set <code className="text-xs">LINE_CHANNEL_ID</code>,{" "}
-                <code className="text-xs">LINE_CHANNEL_SECRET</code>, and{" "}
-                <code className="text-xs">LINE_CHANNEL_ACCESS_TOKEN</code> on the API server.
-              </p>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook URL (LINE Developers → Messaging API)</p>
-                <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  https://api.kolink.tech/api/v1/webhooks/line
-                </code>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Turn on <strong>Use webhook</strong>, verify the URL, then add your Official Account as a friend and send a test message.
-                New chats appear in Inbox → LINE → All chats.
               </p>
             </div>
           ) : null}

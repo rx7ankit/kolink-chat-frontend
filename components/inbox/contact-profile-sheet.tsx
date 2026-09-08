@@ -136,20 +136,12 @@ function profileAction(contact: Contact, fields: Record<string, string>): { href
     const phone = digits(contact.phone || contact.handle);
     return phone ? { href: `https://wa.me/${phone}`, label: "Open in WhatsApp" } : null;
   }
-  if (contact.channel === "line") {
-    const lineId = fields.line_user_id?.trim() || contact.handle.replace(/^@/, "").trim();
-    return lineId ? { href: `https://line.me/R/ti/p/${encodeURIComponent(lineId)}`, label: "Open in LINE" } : null;
-  }
   if (contact.channel === "linkedin") {
     const vanity = (fields.linkedin_vanity || contact.handle || "").replace(/^@/, "").trim();
     const url =
       fields.linkedin_profile_url?.trim() ||
       (vanity && !looksLikeLinkedInPersonId(vanity) ? `https://www.linkedin.com/in/${vanity}` : "");
     return url ? { href: url, label: "View on LinkedIn" } : null;
-  }
-  if (contact.channel === "tiktok") {
-    const user = contact.handle.replace(/^@/, "").trim();
-    return user && !isNumericId(user) ? { href: `https://www.tiktok.com/@${user}`, label: "View on TikTok" } : null;
   }
   if (contact.channel === "x") {
     const user = contact.handle.replace(/^@/, "").trim();

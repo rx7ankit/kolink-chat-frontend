@@ -161,18 +161,6 @@ export function PlatformPreview({
     );
   }
 
-  if (platform === "tiktok") {
-    return (
-      <div className="mx-auto w-[220px] overflow-hidden rounded-[1.4rem] bg-black text-white">
-        <MediaBlock urls={mediaUrls} tall />
-        <div className="p-3">
-          <p className="text-xs font-semibold">@bloom.studio</p>
-          <p className="mt-1 line-clamp-3 text-[11px] text-white/80">{caption}</p>
-        </div>
-      </div>
-    );
-  }
-
   const story = postType === "story";
   return (
     <div className="mx-auto w-[240px] overflow-hidden rounded-[1.6rem] border border-white/70 bg-white shadow-sm">

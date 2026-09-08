@@ -22,9 +22,7 @@ export const channelMix = [
   { name: "WhatsApp", value: 2210 },
   { name: "Instagram", value: 1842 },
   { name: "Messenger", value: 964 },
-  { name: "TikTok", value: 611 },
   { name: "X", value: 328 },
-  { name: "LINE", value: 190 },
   { name: "LinkedIn", value: 0 },
 ];
 

@@ -1,6 +1,6 @@
 import type { ChannelId } from "@/lib/mock";
 
-export type PublishPlatformId = "instagram" | "facebook" | "threads" | "whatsapp" | "tiktok" | "x" | "linkedin";
+export type PublishPlatformId = "instagram" | "facebook" | "threads" | "whatsapp" | "x" | "linkedin";
 
 export type PostMode = "social_post" | "audience_dm";
 export type PostType = "feed" | "reel" | "story" | "carousel";
@@ -31,7 +31,6 @@ export const PUBLISH_PLATFORMS: {
   { id: "facebook", label: "Facebook Page", captionLimit: 63206 },
   { id: "threads", label: "Threads", captionLimit: 500 },
   { id: "whatsapp", label: "WhatsApp", captionLimit: 4096 },
-  { id: "tiktok", label: "TikTok", captionLimit: 2200 },
   { id: "x", label: "X", captionLimit: 280 },
   { id: "linkedin", label: "LinkedIn", captionLimit: 3000 },
 ];

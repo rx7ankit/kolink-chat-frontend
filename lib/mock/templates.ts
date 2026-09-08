@@ -45,24 +45,10 @@ export const templates: Template[] = [
     category: "Sales",
   },
   {
-    id: "tpl6",
-    name: "TikTok LINK capture",
-    description: "Comment LINK, get the bio link + waitlist in DMs.",
-    channel: "tiktok",
-    category: "Growth",
-  },
-  {
     id: "tpl7",
     name: "X mention waitlist",
     description: "Turn DROP mentions into a waitlist DM.",
     channel: "x",
     category: "Growth",
-  },
-  {
-    id: "tpl8",
-    name: "LINE appointment reminder",
-    description: "Confirm studio visits 24 hours ahead.",
-    channel: "line",
-    category: "Support",
   },
 ];

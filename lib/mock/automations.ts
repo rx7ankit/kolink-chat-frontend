@@ -43,16 +43,6 @@ export const automations: Automation[] = [
     updatedAt: "2026-08-27",
   },
   {
-    id: "a4",
-    name: "TikTok comment to DM",
-    trigger: "TikTok comment contains LINK",
-    channels: ["tiktok"],
-    status: "paused",
-    sent: 490,
-    clicked: 33,
-    updatedAt: "2026-08-21",
-  },
-  {
     id: "a5",
     name: "X mention capture",
     trigger: "X mention contains DROP",
@@ -66,7 +56,7 @@ export const automations: Automation[] = [
     id: "a6",
     name: "Abandoned cart nudge",
     trigger: "Shopify checkout started",
-    channels: ["whatsapp", "line"],
+    channels: ["whatsapp"],
     status: "draft",
     sent: 0,
     clicked: 0,
@@ -77,7 +67,6 @@ export const automations: Automation[] = [
 export const keywords = [
   { id: "k1", phrase: "PRICE", flow: "Comment keyword → wholesale DM", channel: "instagram" as ChannelId, hits: 412 },
   { id: "k2", phrase: "HOURS", flow: "FAQ default reply", channel: "instagram" as ChannelId, hits: 96 },
-  { id: "k3", phrase: "LINK", flow: "TikTok comment to DM", channel: "tiktok" as ChannelId, hits: 188 },
   { id: "k4", phrase: "DROP", flow: "X mention capture", channel: "x" as ChannelId, hits: 54 },
   { id: "k5", phrase: "HELP", flow: "Human handoff", channel: "whatsapp" as ChannelId, hits: 73 },
 ];

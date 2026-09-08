@@ -4,10 +4,8 @@ export type ChannelId =
   | "whatsapp"
   | "facebook"
   | "threads"
-  | "tiktok"
   | "x"
   | "telegram"
-  | "line"
   | "linkedin"
   | "email";
 
@@ -80,17 +78,6 @@ export const channels: Channel[] = [
     description: "Post replies, @mentions, and publishing.",
   },
   {
-    id: "tiktok",
-    name: "TikTok",
-    handle: "@bloom.studio",
-    connected: true,
-    status: "needs_attention",
-    messages7d: 611,
-    contacts: 1540,
-    accent: "bg-[#f3e4ea] text-[#5a3044]",
-    description: "DMs, video comments, and profile from your TikTok account.",
-  },
-  {
     id: "x",
     name: "X",
     handle: "@bloomandco",
@@ -111,17 +98,6 @@ export const channels: Channel[] = [
     contacts: 0,
     accent: "bg-[#dceef8] text-[#2f5f78]",
     description: "Your personal Telegram DMs in Inbox. Connect with phone + login code in Channels.",
-  },
-  {
-    id: "line",
-    name: "LINE",
-    handle: "@kolink",
-    connected: false,
-    status: "disconnected",
-    messages7d: 0,
-    contacts: 0,
-    accent: "bg-[#d8f4e8] text-[#1a6b42]",
-    description: "Official Account DMs via Messaging API. Connect with channel credentials from LINE Developers.",
   },
   {
     id: "linkedin",
