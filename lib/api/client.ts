@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+import { API_URL } from "./url";
+
+export { API_URL };
 
 const TOKEN_KEY = "kolink_token";
 const WORKSPACE_KEY = "kolink_workspace_id";

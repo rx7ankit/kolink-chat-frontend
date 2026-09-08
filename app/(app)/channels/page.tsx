@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  confirmTelegramPassword,
   connectChannelDev,
   connectWhatsApp,
   disconnectAllChannels,
@@ -24,19 +23,18 @@ import {
   getMetaStatus,
   listChannels,
   startChannelOAuth,
-  startTelegramLogin,
   syncChannel,
-  verifyTelegramLogin,
   type ApiChannel,
   type ChannelProfile,
   type MetaStatus,
 } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
+import { oauthCallbackUrl, webhookUrl } from "@/lib/api/url";
 import { channels as catalog } from "@/lib/mock";
 import type { Channel, ChannelId } from "@/lib/mock";
 
-const LIVE = new Set(["whatsapp", "instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "linkedin"]);
-const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "telegram", "email", "linkedin"]);
+const LIVE = new Set(["whatsapp", "instagram", "messenger", "facebook", "threads", "x", "email", "linkedin"]);
+const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "email", "linkedin"]);
 
 function emptyItems(): ChannelCardItem[] {
   return catalog.map((item) => ({
@@ -78,10 +76,6 @@ export default function ChannelsPage() {
   const [profile, setProfile] = useState<ChannelProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [pageId, setPageId] = useState("");
-  const [tgStep, setTgStep] = useState<"phone" | "code" | "password">("phone");
-  const [tgPhone, setTgPhone] = useState("");
-  const [tgCode, setTgCode] = useState("");
-  const [tgPassword, setTgPassword] = useState("");
 
   const refreshProfiles = useCallback(async (rows: ChannelCardItem[]) => {
     const targets = rows.filter((row) => row.connected && PROFILE_CHANNELS.has(row.id));
@@ -221,51 +215,6 @@ export default function ChannelsPage() {
     }
   }
 
-  useEffect(() => {
-    if (pending?.id === "telegram" && !pending.connected) {
-      setTgStep("phone");
-      setTgPhone("");
-      setTgCode("");
-      setTgPassword("");
-    }
-  }, [pending]);
-
-  async function submitTelegramLogin() {
-    setBusy(true);
-    try {
-      if (tgStep === "phone") {
-        const res = await startTelegramLogin(tgPhone.trim());
-        toast.success(res.detail);
-        setTgStep("code");
-        return;
-      }
-      if (tgStep === "code") {
-        const res = await verifyTelegramLogin(tgCode.trim());
-        if (res.needs_password) {
-          toast.message("Enter your Telegram cloud password (2FA)");
-          setTgStep("password");
-          return;
-        }
-        if (res.connected) {
-          toast.success("Telegram connected");
-          await reload();
-          setPending(null);
-        }
-        return;
-      }
-      const res = await confirmTelegramPassword(tgPassword);
-      if (res.connected) {
-        toast.success("Telegram connected");
-        await reload();
-        setPending(null);
-      }
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.detail : "Telegram login failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function confirm(login?: "instagram" | "facebook") {
     if (!pending) return;
     setBusy(true);
@@ -281,9 +230,6 @@ export default function ChannelsPage() {
       } else if (pending.id === "whatsapp") {
         await connectWhatsApp();
         toast.success(`${pending.name} connected from server credentials`);
-      } else if (pending.id === "telegram") {
-        await submitTelegramLogin();
-        return;
       } else if (pending.id === "linkedin") {
         const start = await startChannelOAuth(pending.id);
         window.location.href = start.url;
@@ -325,7 +271,7 @@ export default function ChannelsPage() {
     <div className="page-shell">
       <PageHeader
         title="Channels"
-        description="Connect Instagram, Messenger, Facebook, Threads, X, WhatsApp, Telegram, LinkedIn, and Gmail in one inbox."
+        description="Connect Instagram, Messenger, Facebook, Threads, X, WhatsApp, LinkedIn, and Gmail in one inbox."
         actions={
           <Button variant="outline" size="sm" disabled={busy || loading} onClick={() => void resetAll()}>
             Reset all
@@ -380,8 +326,6 @@ export default function ChannelsPage() {
                   ? "Uses WhatsApp Cloud API credentials from your server environment (WHATSAPP_* in API .env). No manual tokens needed."
                   : pending?.id === "linkedin"
                     ? "Sign in with LinkedIn to connect your Company Page. Comments sync to Inbox → Comments; Page DMs need Messaging API partner access."
-                  : pending?.id === "telegram"
-                    ? "Sign in with your personal Telegram account (phone + code from the Telegram app). Messages sync from your private chats."
                   : pending?.id === "instagram"
                     ? "Link your Instagram professional account through Facebook Page or Instagram Login."
                   : pending?.id === "threads"
@@ -415,7 +359,7 @@ export default function ChannelsPage() {
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook callback URL (Meta → WhatsApp → Configuration)</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  {meta?.webhook_callback_url || "https://api.kolink.tech/api/v1/webhooks/meta"}
+                  {meta?.webhook_callback_url || webhookUrl("meta")}
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -439,71 +383,19 @@ export default function ChannelsPage() {
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">OAuth redirect URI</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  {(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "")}/channels/oauth/linkedin/callback
+                  {meta?.oauth_redirects?.linkedin || oauthCallbackUrl("linkedin")}
                 </code>
               </div>
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Webhook URL</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  {(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "")}/webhooks/linkedin
+                  {webhookUrl("linkedin")}
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
                 Set <code className="text-xs">LINKEDIN_CLIENT_ID</code> and{" "}
-                <code className="text-xs">LINKEDIN_CLIENT_SECRET</code> on the{" "}
-                <strong>API server</strong> (the host in{" "}
-                <code className="text-xs">NEXT_PUBLIC_API_URL</code>, currently{" "}
-                {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}), restart the API, then click Confirm to
-                sign in with LinkedIn.
-              </p>
-            </div>
-          ) : null}
-          {pending?.id === "telegram" && !pending.connected ? (
-            <div className="space-y-3 text-sm">
-              <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                Your server admin must set <code className="text-xs">TELEGRAM_API_ID</code> and{" "}
-                <code className="text-xs">TELEGRAM_API_HASH</code> from{" "}
-                <a href="https://my.telegram.org/apps" target="_blank" rel="noopener noreferrer" className="underline">
-                  my.telegram.org/apps
-                </a>
-                . KoLink stores an encrypted session for your workspace — replies send as you, not a bot.
-              </p>
-              {tgStep === "phone" ? (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Phone number (with country code)</p>
-                  <input
-                    className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                    placeholder="+919876543210"
-                    value={tgPhone}
-                    onChange={(e) => setTgPhone(e.target.value)}
-                  />
-                </div>
-              ) : null}
-              {tgStep === "code" ? (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Login code from Telegram</p>
-                  <input
-                    className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                    placeholder="12345"
-                    value={tgCode}
-                    onChange={(e) => setTgCode(e.target.value)}
-                  />
-                </div>
-              ) : null}
-              {tgStep === "password" ? (
-                <div>
-                  <p className="mb-1 text-xs font-medium text-muted-foreground">Telegram cloud password (2FA)</p>
-                  <input
-                    type="password"
-                    className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
-                    value={tgPassword}
-                    onChange={(e) => setTgPassword(e.target.value)}
-                  />
-                </div>
-              ) : null}
-              <p className="text-xs text-muted-foreground">
-                After connecting, use Sync on the Telegram card or wait for automatic sync. Private chats appear in
-                Inbox → Telegram.
+                <code className="text-xs">LINKEDIN_CLIENT_SECRET</code> on the API server, restart, then click
+                Confirm to sign in with LinkedIn.
               </p>
             </div>
           ) : null}
@@ -517,7 +409,7 @@ export default function ChannelsPage() {
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Authorized redirect URI</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  https://api.kolink.tech/api/v1/channels/oauth/gmail/callback
+                  {meta?.oauth_redirects?.gmail || oauthCallbackUrl("gmail")}
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -535,8 +427,7 @@ export default function ChannelsPage() {
                     Add this to Meta → Facebook Login → Settings → Valid OAuth Redirect URIs
                   </p>
                   <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                    {meta?.oauth_redirects?.meta ||
-                      "https://api.kolink.tech/api/v1/channels/oauth/meta/callback"}
+                    {meta?.oauth_redirects?.meta || oauthCallbackUrl("meta")}
                   </code>
                   <Button
                     type="button"
@@ -545,8 +436,7 @@ export default function ChannelsPage() {
                     className="mt-2"
                     onClick={async () => {
                       const uri =
-                        meta?.oauth_redirects?.meta ||
-                        "https://api.kolink.tech/api/v1/channels/oauth/meta/callback";
+                        meta?.oauth_redirects?.meta || oauthCallbackUrl("meta");
                       try {
                         await navigator.clipboard.writeText(uri);
                         toast.success("Redirect URI copied — paste in Meta dashboard");
@@ -576,7 +466,7 @@ export default function ChannelsPage() {
               <div>
                 <p className="mb-1 text-xs font-medium text-muted-foreground">OAuth redirect URI</p>
                 <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  {meta?.oauth_redirects?.meta || "http://localhost:8000/api/v1/channels/oauth/meta/callback"}
+                  {meta?.oauth_redirects?.instagram || oauthCallbackUrl("instagram")}
                 </code>
               </div>
               <Button
@@ -585,8 +475,7 @@ export default function ChannelsPage() {
                 size="sm"
                 onClick={async () => {
                   const uri =
-                    meta?.oauth_redirects?.meta ||
-                    "http://localhost:8000/api/v1/channels/oauth/meta/callback";
+                    meta?.oauth_redirects?.instagram || oauthCallbackUrl("instagram");
                   try {
                     await navigator.clipboard.writeText(uri);
                     toast.success("Redirect URI copied");
@@ -616,12 +505,6 @@ export default function ChannelsPage() {
                 ? "Working…"
                 : pending?.id === "email" && !pending.connected
                   ? "Continue with Google"
-                  : pending?.id === "telegram" && !pending.connected
-                  ? tgStep === "phone"
-                    ? "Send code"
-                    : tgStep === "code"
-                      ? "Verify code"
-                      : "Sign in"
                   : pending?.id === "instagram" && !pending.connected
                     ? "Connect via Facebook Page"
                     : "Confirm"}

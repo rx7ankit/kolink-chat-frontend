@@ -4,8 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { getInboxRevision } from "@/lib/api/inbox";
 import { getToken, getWorkspaceId } from "@/lib/api/client";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+import { API_URL } from "@/lib/api/url";
 
 const REFRESH_DEBOUNCE_MS = 150;
 const RECONNECT_MS = 2000;

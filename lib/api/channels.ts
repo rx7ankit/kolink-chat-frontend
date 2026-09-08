@@ -63,38 +63,6 @@ export async function connectWhatsApp() {
   });
 }
 
-export type TelegramLoginStartOut = {
-  phone: string;
-  detail: string;
-};
-
-export type TelegramLoginVerifyOut = {
-  connected: boolean;
-  needs_password: boolean;
-  channel: ApiChannel | null;
-};
-
-export async function startTelegramLogin(phone: string) {
-  return api<TelegramLoginStartOut>(workspacePath("/channels/telegram/login/start"), {
-    method: "POST",
-    body: { phone },
-  });
-}
-
-export async function verifyTelegramLogin(code: string) {
-  return api<TelegramLoginVerifyOut>(workspacePath("/channels/telegram/login/verify"), {
-    method: "POST",
-    body: { code },
-  });
-}
-
-export async function confirmTelegramPassword(password: string) {
-  return api<TelegramLoginVerifyOut>(workspacePath("/channels/telegram/login/password"), {
-    method: "POST",
-    body: { password },
-  });
-}
-
 export async function disconnectChannel(channel: string) {
   return api<ApiChannel>(workspacePath(`/channels/${channel}`), {
     method: "PATCH",
@@ -136,6 +104,7 @@ export type MetaStatus = {
   webhook_callback_url?: string;
   verify_token_set: boolean;
   oauth_redirects: Record<string, string>;
+  legal?: Record<string, string>;
   app: MetaProbe;
   whatsapp: MetaProbe;
   page: MetaProbe;

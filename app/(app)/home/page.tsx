@@ -35,7 +35,7 @@ export default function HomePage() {
   const stats = data?.summary;
   const byChannel = new Map(channelRows.map((row) => [row.channel, row]));
   const channelCards = catalog.filter((item) =>
-    ["instagram", "whatsapp", "messenger", "facebook", "x", "telegram", "email"].includes(item.id),
+    ["instagram", "whatsapp", "messenger", "facebook", "x", "email"].includes(item.id),
   );
 
   return (

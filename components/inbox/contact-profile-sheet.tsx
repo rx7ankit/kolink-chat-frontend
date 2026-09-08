@@ -44,8 +44,6 @@ const PROFILE_KEYS = new Set([
   "facebook_profile_url",
   "facebook_inbox_url",
   "threads_profile_url",
-  "telegram_profile_url",
-  "telegram_username",
   "linkedin_profile_url",
   "linkedin_vanity",
   "headline",
@@ -127,10 +125,6 @@ function profileAction(contact: Contact, fields: Record<string, string>): { href
   if (contact.channel === "threads") {
     const url = fields.threads_profile_url?.trim() || (contact.handle ? `https://www.threads.net/@${contact.handle.replace(/^@/, "")}` : "");
     return url ? { href: url, label: "View on Threads" } : null;
-  }
-  if (contact.channel === "telegram") {
-    const url = fields.telegram_profile_url?.trim() || (contact.handle ? `https://t.me/${contact.handle.replace(/^@/, "")}` : "");
-    return url ? { href: url, label: "View on Telegram" } : null;
   }
   if (contact.channel === "whatsapp") {
     const phone = digits(contact.phone || contact.handle);
@@ -311,13 +305,11 @@ export function ContactProfileSheet({
           ? "Profile updated from Instagram"
           : contactChannel === "threads"
             ? "Profile updated from Threads"
-              : contactChannel === "telegram"
-                ? "Profile updated from Telegram"
-                : contactChannel === "linkedin"
-                  ? "Profile updated from LinkedIn"
-                  : contactChannel === "email"
-                    ? "Profile updated from Gmail"
-                    : "Profile updated from Facebook",
+            : contactChannel === "linkedin"
+              ? "Profile updated from LinkedIn"
+              : contactChannel === "email"
+                ? "Profile updated from Gmail"
+                : "Profile updated from Facebook",
       );
     } catch {
       toast.error("Could not refresh profile");
@@ -678,9 +670,7 @@ export function ContactProfileSheet({
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {isMetaDm
                   ? "Open this chat once or tap refresh to load Facebook profile details from Meta."
-                  : contactChannel === "telegram"
-                    ? "Open this chat once or tap refresh to load Telegram profile details."
-                    : "Instagram profile details will appear here when available from Meta."}
+                  : "Instagram profile details will appear here when available from Meta."}
               </p>
             ) : null}
           </ScrollArea>

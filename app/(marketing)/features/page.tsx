@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: "Channels",
-    body: "Connect Meta, X, Telegram, LinkedIn, and email from one settings surface.",
+    body: "Connect Meta, X, LinkedIn, and email from one settings surface.",
     icon: Radio,
   },
 ];

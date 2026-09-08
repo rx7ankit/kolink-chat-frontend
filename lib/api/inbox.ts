@@ -2,8 +2,7 @@ import type { ChannelId, ChatMessage, Contact, Conversation, InboxLabel } from "
 
 import { api, ApiError, getToken, getWorkspaceId, workspacePath } from "./client";
 import type { TeamMember } from "./team";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+import { API_URL } from "./url";
 
 export type Page<T> = {
   items: T[];

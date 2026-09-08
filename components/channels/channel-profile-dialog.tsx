@@ -41,7 +41,6 @@ function channelPlatformLabel(channelId: ChannelId) {
     messenger: "Facebook",
     threads: "Threads",
     x: "X",
-    telegram: "Telegram",
     email: "Gmail",
     linkedin: "LinkedIn",
   };

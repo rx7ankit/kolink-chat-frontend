@@ -31,7 +31,7 @@ export default function LandingPage() {
         <div className="dot-grid pointer-events-none absolute inset-0 opacity-60" />
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
           <p className="mb-4 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-medium text-primary">
-            Meta · X · Telegram · LinkedIn · Email
+            Meta · X · LinkedIn · Email
           </p>
           <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Chat marketing, without the tab chaos.

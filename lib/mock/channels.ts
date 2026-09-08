@@ -5,7 +5,6 @@ export type ChannelId =
   | "facebook"
   | "threads"
   | "x"
-  | "telegram"
   | "linkedin"
   | "email";
 
@@ -87,17 +86,6 @@ export const channels: Channel[] = [
     contacts: 870,
     accent: "bg-[#ececf1] text-[#3a3a44]",
     description: "DMs, mention replies, and posting from Broadcasts.",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    handle: "@BloomSupport",
-    connected: false,
-    status: "disconnected",
-    messages7d: 0,
-    contacts: 0,
-    accent: "bg-[#dceef8] text-[#2f5f78]",
-    description: "Your personal Telegram DMs in Inbox. Connect with phone + login code in Channels.",
   },
   {
     id: "linkedin",

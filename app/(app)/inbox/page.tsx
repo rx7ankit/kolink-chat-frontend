@@ -117,7 +117,6 @@ const channelFilters: { id: "all" | ChannelId; label: string }[] = [
   { id: "all", label: "All" },
   { id: "instagram", label: channelMeta.instagram.label },
   { id: "whatsapp", label: channelMeta.whatsapp.label },
-  { id: "telegram", label: channelMeta.telegram.label },
   { id: "linkedin", label: channelMeta.linkedin.label },
   { id: "email", label: channelMeta.email.label },
   { id: "messenger", label: channelMeta.messenger.label },
@@ -625,8 +624,6 @@ export default function InboxPage() {
             ? "No X mentions yet. Sync after someone mentions you or replies to a post."
             : channel === "x"
               ? "No X DMs yet. Mentions appear in Comments. DMs need dm.read access on your X app."
-              : channel === "telegram"
-                ? "No Telegram chats yet. Connect your personal Telegram, then wait a moment or tap Sync."
               : channel === "linkedin" && folder === "comments"
                 ? "No LinkedIn comments yet. Stay on Comments, tap Sync comments & chat. LinkedIn only lets apps read Company Page comments — not comments on a personal profile post."
               : channel === "linkedin"
@@ -650,7 +647,7 @@ export default function InboxPage() {
       setFolder("all");
     } else if (next === "facebook" || next === "threads" || next === "linkedin") {
       setFolder("comments");
-    } else if (next === "messenger" || next === "telegram" || next === "whatsapp") {
+    } else if (next === "messenger" || next === "whatsapp") {
       setFolder("all");
     }
   }
@@ -725,7 +722,7 @@ export default function InboxPage() {
     try {
       const before = await getInboxRevision().catch(() => ({ revision: "" }));
       const connected = (await listChannels().catch(() => []))
-        .filter((row) => row.connected && ["instagram", "messenger", "facebook", "threads", "x", "telegram", "email", "linkedin"].includes(row.channel))
+        .filter((row) => row.connected && ["instagram", "messenger", "facebook", "threads", "x", "email", "linkedin"].includes(row.channel))
         .map((row) => row.channel);
       const notes: string[] = [];
       let linkedinImported = false;

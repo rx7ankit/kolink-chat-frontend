@@ -3,7 +3,7 @@ export const brand = {
   shortName: "koLink",
   tagline: "All your conversations. One calm inbox.",
   description:
-    "Automate, reply, and grow across Instagram, Messenger, WhatsApp, X, Telegram, LinkedIn, and email — without switching tabs.",
+    "Automate, reply, and grow across Instagram, Messenger, WhatsApp, X, LinkedIn, and email — without switching tabs.",
 };
 
 export const palette = {
