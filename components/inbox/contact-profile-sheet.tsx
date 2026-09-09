@@ -211,9 +211,9 @@ function InfoRow({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 flex-1 text-center">
+    <div className="min-w-0 px-1 text-center">
       <p className="text-lg font-semibold tabular-nums">{value}</p>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -371,7 +371,7 @@ export function ContactProfileSheet({
             </div>
 
             {hasStats ? (
-              <div className="relative mx-auto mt-6 flex max-w-xs rounded-2xl border border-white/70 bg-white/70 px-2 py-3 shadow-sm backdrop-blur">
+              <div className="relative mx-auto mt-6 grid w-full max-w-xs grid-cols-3 gap-x-2 rounded-2xl border border-white/70 bg-white/70 px-2 py-3 shadow-sm backdrop-blur">
                 {posts ? <Stat label="Posts" value={formatCount(posts)} /> : null}
                 {followers ? <Stat label="Followers" value={formatCount(followers)} /> : null}
                 {following ? <Stat label="Following" value={formatCount(following)} /> : null}

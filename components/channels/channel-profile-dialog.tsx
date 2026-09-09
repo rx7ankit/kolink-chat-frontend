@@ -27,9 +27,9 @@ function formatCount(value: number | null | undefined) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 flex-1 text-center">
+    <div className="min-w-0 px-1 text-center">
       <p className="text-base font-semibold tabular-nums">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -139,7 +139,7 @@ export function ChannelProfileDialog({
             </DialogHeader>
 
             {hasStats ? (
-              <div className="mt-5 flex w-full rounded-2xl border border-white/70 bg-white/45 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-md">
+              <div className="mt-5 grid w-full grid-cols-3 gap-x-2 rounded-2xl border border-white/70 bg-white/45 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-md">
                 {profile?.media_count != null ? (
                   <Stat label="Posts" value={formatCount(profile.media_count)} />
                 ) : null}
