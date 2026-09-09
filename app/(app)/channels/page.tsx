@@ -242,7 +242,7 @@ export default function ChannelsPage() {
     }
   }
 
-  async function confirm(login?: "instagram" | "facebook") {
+  async function confirm() {
     if (!pending) return;
     setBusy(true);
     try {
@@ -286,8 +286,8 @@ export default function ChannelsPage() {
         const start = await startChannelOAuth(
           pending.id,
           {
-            ...(pending.id === "instagram" && login ? { login } : {}),
-            ...(pending.id === "messenger" || pending.id === "facebook"
+            ...(pending.id === "instagram" ? { login: "facebook" } : {}),
+            ...(pending.id === "messenger" || pending.id === "facebook" || pending.id === "instagram"
               ? { pageId: pageId.trim() || undefined }
               : {}),
           },
@@ -410,7 +410,7 @@ export default function ChannelsPage() {
                   : pending?.id === "linkedin"
                     ? "Sign in with LinkedIn to connect your Company Page. Comments sync to Inbox → Comments; Page DMs need Messaging API partner access."
                   : pending?.id === "instagram"
-                    ? "Link your Instagram professional account through Facebook Page or Instagram Login."
+                    ? "Connect Instagram through Facebook Login. Pick a Facebook Page that has a Professional Instagram account linked."
                   : pending?.id === "threads"
                     ? "Authorize KoLink on Threads (separate from Facebook Login). Replies and @mentions appear in Inbox → Comments."
                     : pending?.id === "x"
@@ -550,7 +550,7 @@ export default function ChannelsPage() {
               </p>
             </div>
           ) : null}
-          {pending?.id === "messenger" || pending?.id === "facebook" ? (
+          {pending?.id === "messenger" || pending?.id === "facebook" || pending?.id === "instagram" ? (
             !pending.connected ? (
               <div className="space-y-3 text-sm">
                 <div>
@@ -581,7 +581,7 @@ export default function ChannelsPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Optional: paste a Facebook Page ID to connect a specific Page (e.g. Skumar webtech
-                  1173079159214239). Leave blank to auto-pick the Page with linked Instagram.
+                  1173079159214239). Leave blank to auto-pick a Page you share that has linked Instagram.
                 </p>
                 <input
                   className="w-full rounded-lg border bg-white/70 px-3 py-2 text-sm"
@@ -592,49 +592,17 @@ export default function ChannelsPage() {
               </div>
             ) : null
           ) : null}
-          {pending?.id === "instagram" && !pending.connected ? (
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">OAuth redirect URI</p>
-                <code className="block break-all rounded-lg bg-black/5 px-2 py-1.5 text-xs">
-                  {meta?.oauth_redirects?.instagram || oauthCallbackUrl("instagram")}
-                </code>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const uri =
-                    meta?.oauth_redirects?.instagram || oauthCallbackUrl("instagram");
-                  try {
-                    await navigator.clipboard.writeText(uri);
-                    toast.success("Redirect URI copied");
-                  } catch {
-                    toast.message(uri);
-                  }
-                }}
-              >
-                Copy redirect URI
-              </Button>
-            </div>
-          ) : null}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => setPending(null)} disabled={busy}>
               Cancel
             </Button>
-            {pending?.id === "instagram" && !pending.connected ? (
-              <Button variant="outline" onClick={() => void confirm("instagram")} disabled={busy}>
-                {busy ? "Working…" : "Instagram Login"}
-              </Button>
-            ) : null}
             {pending?.id === "whatsapp" && !pending.connected && !waAdvanced ? (
               <Button onClick={launchWhatsAppMeta} disabled={busy || !meta?.whatsapp_embedded_signup?.ready}>
                 {busy ? "Working…" : "Continue with Meta"}
               </Button>
             ) : (
               <Button
-                onClick={() => void confirm(pending?.id === "instagram" ? "facebook" : undefined)}
+                onClick={() => void confirm()}
                 disabled={
                   busy ||
                   (pending?.id === "whatsapp" &&
@@ -649,7 +617,7 @@ export default function ChannelsPage() {
                     : pending?.id === "whatsapp" && !pending.connected
                       ? "Connect this number"
                     : pending?.id === "instagram" && !pending.connected
-                      ? "Connect via Facebook Page"
+                      ? "Connect Instagram through Facebook"
                       : "Confirm"}
               </Button>
             )}
