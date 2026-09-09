@@ -156,7 +156,7 @@ export type ChannelInsightsMetric = {
   name: string;
   period: string;
   values?: Array<{ value: number | Record<string, number>; end_time?: string }>;
-  total_value?: { value?: number };
+  total_value?: { value?: number | Record<string, number> };
   title?: string;
   description?: string;
 };
@@ -177,4 +177,8 @@ export async function getInstagramInsights() {
 
 export async function getFacebookInsights() {
   return api<ChannelInsights>(workspacePath("/channels/facebook/insights"));
+}
+
+export async function getThreadsInsights() {
+  return api<ChannelInsights>(workspacePath("/channels/threads/insights"));
 }

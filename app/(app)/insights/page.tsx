@@ -22,6 +22,7 @@ import { getAnalytics, type AnalyticsBundle } from "@/lib/api/analytics";
 import {
   getFacebookInsights,
   getInstagramInsights,
+  getThreadsInsights,
   listChannels,
   type ChannelInsightsMetric,
 } from "@/lib/api/channels";
@@ -51,9 +52,25 @@ const INSTAGRAM_METRIC_LABELS: Record<string, string> = {
   media_count: "Posts",
 };
 
+const THREADS_METRIC_LABELS: Record<string, string> = {
+  views: "Profile views",
+  likes: "Likes",
+  replies: "Replies",
+  reposts: "Reposts",
+  quotes: "Quotes",
+  clicks: "Link clicks",
+  followers_count: "Followers",
+};
+
+type InsightsPlatform = "instagram" | "facebook" | "threads";
+
 function latestInsightValue(metric: ChannelInsightsMetric): number | null {
   const total = metric.total_value?.value;
   if (typeof total === "number") return total;
+  if (total && typeof total === "object") {
+    const sum = Object.values(total).reduce((acc, item) => acc + (typeof item === "number" ? item : 0), 0);
+    if (sum) return sum;
+  }
   const values = metric.values ?? [];
   if (!values.length) return null;
   const last = values[values.length - 1];
@@ -66,7 +83,10 @@ function latestInsightValue(metric: ChannelInsightsMetric): number | null {
   return null;
 }
 
-function metricLabel(metric: ChannelInsightsMetric, platform: "instagram" | "facebook") {
+function metricLabel(metric: ChannelInsightsMetric, platform: InsightsPlatform) {
+  if (platform === "threads" && THREADS_METRIC_LABELS[metric.name]) {
+    return THREADS_METRIC_LABELS[metric.name];
+  }
   if (metric.title) return metric.title;
   if (platform === "facebook" && FACEBOOK_METRIC_LABELS[metric.name]) {
     return FACEBOOK_METRIC_LABELS[metric.name];
@@ -84,7 +104,7 @@ function InsightsMetricGrid({
   error,
 }: {
   metrics: ChannelInsightsMetric[] | null;
-  platform: "instagram" | "facebook";
+  platform: InsightsPlatform;
   emptyText: string;
   error?: string | null;
 }) {
@@ -115,11 +135,15 @@ export default function InsightsPage() {
   const [data, setData] = useState<AnalyticsBundle | null>(null);
   const [igInsights, setIgInsights] = useState<ChannelInsightsMetric[] | null>(null);
   const [fbInsights, setFbInsights] = useState<ChannelInsightsMetric[] | null>(null);
+  const [thInsights, setThInsights] = useState<ChannelInsightsMetric[] | null>(null);
   const [igConnected, setIgConnected] = useState(false);
   const [fbConnected, setFbConnected] = useState(false);
+  const [thConnected, setThConnected] = useState(false);
   const [fbPageName, setFbPageName] = useState<string | null>(null);
+  const [thHandle, setThHandle] = useState<string | null>(null);
   const [igError, setIgError] = useState<string | null>(null);
   const [fbError, setFbError] = useState<string | null>(null);
+  const [thError, setThError] = useState<string | null>(null);
 
   useEffect(() => {
     void getAnalytics()
@@ -130,9 +154,12 @@ export default function InsightsPage() {
         const ig = channels.find((c) => c.channel === "instagram" && c.connected);
         const fb = channels.find((c) => c.channel === "facebook" && c.connected);
         const messenger = channels.find((c) => c.channel === "messenger" && c.connected);
+        const threads = channels.find((c) => c.channel === "threads" && c.connected);
         setIgConnected(Boolean(ig));
         setFbConnected(Boolean(fb || messenger));
+        setThConnected(Boolean(threads));
         setFbPageName(fb?.handle || messenger?.handle || null);
+        setThHandle(threads?.handle || null);
 
         const tasks: Promise<void>[] = [];
         if (ig) {
@@ -161,11 +188,25 @@ export default function InsightsPage() {
               }),
           );
         }
+        if (threads) {
+          tasks.push(
+            getThreadsInsights()
+              .then((res) => {
+                setThInsights(res.data ?? []);
+                setThError(null);
+              })
+              .catch((error) => {
+                setThInsights([]);
+                setThError(error instanceof ApiError ? error.detail : "Could not load Threads insights");
+              }),
+          );
+        }
         return Promise.all(tasks);
       })
       .catch(() => {
         setIgConnected(false);
         setFbConnected(false);
+        setThConnected(false);
       });
   }, []);
 
@@ -216,6 +257,27 @@ export default function InsightsPage() {
             platform="instagram"
             error={igError}
             emptyText="No Instagram insights returned yet. Ensure the connected account is a professional profile with insights enabled."
+          />
+        </div>
+      ) : null}
+
+      {thConnected ? (
+        <div className="mt-6 glass rounded-2xl p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <ChannelIcon channel="threads" size={18} />
+            <div>
+              <h2 className="font-semibold">Threads account insights</h2>
+              <p className="text-sm text-muted-foreground">
+                {thHandle ? `${thHandle} · ` : ""}
+                Live from Threads Graph API · last 7 days
+              </p>
+            </div>
+          </div>
+          <InsightsMetricGrid
+            metrics={thInsights}
+            platform="threads"
+            error={thError}
+            emptyText="No Threads insights returned yet. Reconnect Threads to grant insights access, or check back after activity on the account."
           />
         </div>
       ) : null}
