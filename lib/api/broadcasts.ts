@@ -126,12 +126,73 @@ export function isLiveInstagramBroadcast(item: {
   postMode?: string;
   platformStatuses?: Record<string, PlatformStatus | undefined>;
 }) {
+  return isLivePlatformBroadcast(item, "instagram");
+}
+
+export function isLiveThreadsBroadcast(item: {
+  channel?: string;
+  platforms?: string[];
+  status?: string;
+  postMode?: string;
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  return isLivePlatformBroadcast(item, "threads");
+}
+
+export function isLiveSocialBroadcast(item: {
+  channel?: string;
+  platforms?: string[];
+  status?: string;
+  postMode?: string;
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  return isLiveInstagramBroadcast(item) || isLiveThreadsBroadcast(item);
+}
+
+function isLivePlatformBroadcast(
+  item: {
+    channel?: string;
+    platforms?: string[];
+    status?: string;
+    postMode?: string;
+    platformStatuses?: Record<string, PlatformStatus | undefined>;
+  },
+  platform: "instagram" | "threads",
+) {
   if ((item.postMode || "social_post") === "audience_dm") return false;
   const platforms = item.platforms?.length ? item.platforms : item.channel ? [item.channel] : [];
-  if (!platforms.includes("instagram")) return false;
-  const ig = item.platformStatuses?.instagram?.status;
-  if (ig === "published" || ig === "deleted") return true;
+  if (!platforms.includes(platform)) return false;
+  const rowStatus = item.platformStatuses?.[platform]?.status;
+  if (rowStatus === "published" || rowStatus === "deleted") return true;
   return item.status === "published" || item.status === "partially_failed" || item.status === "sent";
+}
+
+export function liveDeleteCopy(item: { name?: string; platforms?: string[]; channel?: string; status?: string; postMode?: string; platformStatuses?: Record<string, PlatformStatus | undefined> }) {
+  const ig = isLiveInstagramBroadcast(item);
+  const th = isLiveThreadsBroadcast(item);
+  const name = item.name || "this post";
+  if (ig && th) {
+    return {
+      dialog: `Remove “${name}” from Instagram and Threads? It will stay in koLink marked as Deleted.`,
+      confirm: "Remove this post from Instagram and Threads? It will stay in koLink marked as Deleted.",
+      success: "Removed from Instagram and Threads",
+      fail: "Could not remove the post from Instagram and Threads. The listing was left unchanged.",
+    };
+  }
+  if (th) {
+    return {
+      dialog: `Remove “${name}” from Threads? It will stay in koLink marked as Deleted.`,
+      confirm: "Remove this post from Threads? It will stay in koLink marked as Deleted.",
+      success: "Removed from Threads",
+      fail: "Could not remove the post from Threads. The listing was left unchanged.",
+    };
+  }
+  return {
+    dialog: `Remove “${name}” from Instagram? It will stay in koLink marked as Deleted.`,
+    confirm: "Remove this post from Instagram? It will stay in koLink marked as Deleted.",
+    success: "Removed from Instagram",
+    fail: "Could not remove the post from Instagram. The listing was left unchanged.",
+  };
 }
 
 export async function purgeDemoBroadcasts() {

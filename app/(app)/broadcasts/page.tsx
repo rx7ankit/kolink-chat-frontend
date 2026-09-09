@@ -35,7 +35,8 @@ import {
   deleteBroadcast,
   duplicateBroadcast,
   isDeletedBroadcast,
-  isLiveInstagramBroadcast,
+  isLiveSocialBroadcast,
+  liveDeleteCopy,
   listBroadcasts,
   toUiBroadcast,
 } from "@/lib/api/broadcasts";
@@ -205,8 +206,8 @@ export default function BroadcastsPage() {
             <DialogTitle>Delete broadcast</DialogTitle>
             <DialogDescription>
               {pendingDelete
-                ? isLiveInstagramBroadcast(pendingDelete)
-                  ? `Remove “${pendingDelete.name}” from Instagram? It will stay in koLink marked as Deleted.`
+                ? isLiveSocialBroadcast(pendingDelete)
+                  ? liveDeleteCopy(pendingDelete).dialog
                   : `Delete “${pendingDelete.name}”? This cannot be undone.`
                 : ""}
             </DialogDescription>
@@ -226,9 +227,13 @@ export default function BroadcastsPage() {
                   if (isDeletedBroadcast(result)) {
                     const mapped = toUiBroadcast(result);
                     setRows((current) => current.map((row) => (row.id === mapped.id ? mapped : row)));
-                    toast.success("Removed from Instagram");
-                  } else if (isLiveInstagramBroadcast(pendingDelete)) {
-                    toast.error("Could not remove the post from Instagram. The listing was left unchanged.");
+                    toast.success(
+                      isLiveSocialBroadcast(pendingDelete)
+                        ? liveDeleteCopy(pendingDelete).success
+                        : "Broadcast deleted",
+                    );
+                  } else if (isLiveSocialBroadcast(pendingDelete)) {
+                    toast.error(liveDeleteCopy(pendingDelete).fail);
                     await reload();
                   } else {
                     setRows((current) => current.filter((row) => row.id !== pendingDelete.id));
