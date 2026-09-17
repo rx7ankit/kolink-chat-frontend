@@ -9,7 +9,7 @@ import type { ChannelProfileSummary } from "@/lib/api/channels";
 import type { Channel, ChannelId } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
-const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "email", "linkedin"]);
+const PROFILE_CHANNELS = new Set<ChannelId>(["whatsapp", "instagram", "facebook", "messenger", "threads", "x", "email", "linkedin"]);
 const SYNC_CHANNELS = new Set<ChannelId>(["instagram", "messenger", "facebook", "threads", "x", "email", "linkedin"]);
 
 export type ChannelCardItem = Channel & {
@@ -27,6 +27,9 @@ function displayName(item: ChannelCardItem) {
 }
 
 function displaySubtitle(item: ChannelCardItem) {
+  if (item.connected && item.id === "whatsapp") {
+    return item.profile?.page_name || "Connected";
+  }
   if (item.connected && item.id === "linkedin") {
     if (item.profile?.username) return `@${item.profile.username.replace(/^@/, "")}`;
     if (item.handle?.startsWith("@")) return item.handle;

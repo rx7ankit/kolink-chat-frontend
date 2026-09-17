@@ -42,7 +42,7 @@ import { channels as catalog } from "@/lib/mock";
 import type { Channel, ChannelId } from "@/lib/mock";
 
 const LIVE = new Set(["whatsapp", "instagram", "messenger", "facebook", "threads", "x", "email", "linkedin"]);
-const PROFILE_CHANNELS = new Set<ChannelId>(["instagram", "facebook", "messenger", "threads", "x", "email", "linkedin"]);
+const PROFILE_CHANNELS = new Set<ChannelId>(["whatsapp", "instagram", "facebook", "messenger", "threads", "x", "email", "linkedin"]);
 
 function emptyItems(): ChannelCardItem[] {
   return catalog.map((item) => ({
@@ -96,7 +96,10 @@ export default function ChannelsPage() {
     await Promise.all(
       targets.map(async (row) => {
         try {
-          const fresh = await getChannelProfile(row.id, !row.profile?.picture_url);
+          const fresh = await getChannelProfile(
+            row.id,
+            row.id === "whatsapp" ? !row.profile?.name : !row.profile?.picture_url,
+          );
           setItems((current) =>
             current.map((item) =>
               item.id === row.id
@@ -189,8 +192,27 @@ export default function ChannelsPage() {
   }, [pending]);
 
   async function openProfile(channelId: ChannelId) {
+    const cached = items.find((item) => item.id === channelId)?.profile;
     setProfileChannel(channelId);
-    setProfile(null);
+    setProfile(
+      cached
+        ? {
+            channel: channelId,
+            name: cached.name,
+            username: cached.username,
+            picture_url: cached.picture_url,
+            biography: null,
+            followers_count: cached.followers_count,
+            follows_count: null,
+            media_count: null,
+            website: null,
+            category: cached.category,
+            page_name: cached.page_name,
+            profile_url: null,
+            verified: cached.verified,
+          }
+        : null,
+    );
     setProfileLoading(true);
     try {
       const row = await getChannelProfile(channelId, channelId === "linkedin");

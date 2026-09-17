@@ -94,6 +94,45 @@ export function ChannelProfileDialog({
   const isLinkedInPersonal = channelId === "linkedin" && profile?.category === "Personal account";
   const isLinkedInPage = channelId === "linkedin" && profile?.category !== "Personal account";
   const hasProfileLink = Boolean(profile?.profile_url || channelId === "linkedin");
+  const whatsappNumber = profile?.page_name || null;
+
+  if (channelId === "whatsapp") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className={cn(
+            "w-[min(92vw,22rem)] max-w-sm gap-0 overflow-hidden p-0",
+            "rounded-[2rem] border-white/70 bg-white/55 shadow-[0_28px_80px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.85)]",
+            "backdrop-blur-2xl",
+          )}
+        >
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/80 via-white/25 to-transparent" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-sky-200/25 blur-3xl" />
+
+          <div className="relative flex flex-col items-center px-8 pb-9 pt-10 text-center">
+            <div className="relative mx-auto w-fit">
+              <span className="absolute -inset-1 rounded-full bg-white/70 blur-sm" />
+              <span className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-full border-[3px] border-white/90 bg-[#25D366]/15 shadow-[0_12px_30px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-white/80">
+                <ChannelIcon channel="whatsapp" size={36} />
+              </span>
+            </div>
+            <DialogHeader className="mt-4 items-center space-y-2 text-center">
+              <DialogTitle className="text-xl leading-tight">
+                {loading && !profile ? "Loading profile…" : title}
+              </DialogTitle>
+              {whatsappNumber ? (
+                <DialogDescription className="text-sm leading-snug">{whatsappNumber}</DialogDescription>
+              ) : null}
+            </DialogHeader>
+            <div className="mt-4">
+              <ChannelBadge channel="whatsapp" />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
