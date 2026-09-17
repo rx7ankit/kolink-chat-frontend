@@ -52,6 +52,60 @@ const CATEGORY_LABELS: Record<string, string> = {
   AUTHENTICATION: "Authentication",
 };
 
+const LIBRARY_CATEGORIES = [
+  { id: "UTILITY", label: "Utility" },
+  { id: "AUTHENTICATION", label: "Authentication" },
+  { id: "MARKETING", label: "Marketing" },
+] as const;
+
+const LIBRARY_LANGUAGES = [
+  { value: "en_US", label: "English (US)" },
+  { value: "en_GB", label: "English (UK)" },
+  { value: "en", label: "English" },
+  { value: "hi", label: "Hindi" },
+  { value: "es", label: "Spanish" },
+  { value: "pt_BR", label: "Portuguese (BR)" },
+  { value: "ar", label: "Arabic" },
+  { value: "id", label: "Indonesian" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "it", label: "Italian" },
+  { value: "nl", label: "Dutch" },
+  { value: "tr", label: "Turkish" },
+  { value: "ru", label: "Russian" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "zh_CN", label: "Chinese (CN)" },
+  { value: "zh_TW", label: "Chinese (TW)" },
+  { value: "th", label: "Thai" },
+  { value: "vi", label: "Vietnamese" },
+  { value: "fil", label: "Filipino" },
+  { value: "ms", label: "Malay" },
+  { value: "he", label: "Hebrew" },
+  { value: "el", label: "Greek" },
+  { value: "pl", label: "Polish" },
+  { value: "sv", label: "Swedish" },
+  { value: "da", label: "Danish" },
+  { value: "fi", label: "Finnish" },
+  { value: "nb", label: "Norwegian" },
+  { value: "hu", label: "Hungarian" },
+  { value: "sr", label: "Serbian" },
+  { value: "mr", label: "Marathi" },
+];
+
+const LIBRARY_TOPICS: { id: string; label: string }[] = [
+  { id: "ACCOUNT_OR_PRODUCT_PROTECTION", label: "Account or product protection" },
+  { id: "ACCOUNT_UPDATE", label: "Account updates" },
+  { id: "CALL_PERMISSIONS", label: "Call permissions" },
+  { id: "CUSTOMER_FEEDBACK", label: "Customer feedback" },
+  { id: "EVENT_REMINDER", label: "Event reminder" },
+  { id: "GROUP_INVITE", label: "Group invitation link" },
+  { id: "LEGAL", label: "Legal/regulatory compliance" },
+  { id: "ORDER_MANAGEMENT", label: "Order management" },
+  { id: "PAYMENTS", label: "Payments" },
+  { id: "PUBLIC_DISRUPTION", label: "Public disruption" },
+];
+
 function statusVariant(status: string) {
   const value = status.toUpperCase();
   if (value === "APPROVED") return "mint" as const;
@@ -88,6 +142,9 @@ export default function WhatsAppTemplatesPage() {
 
   const [libraryRows, setLibraryRows] = useState<LibraryTemplate[]>([]);
   const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategory, setLibraryCategory] = useState("UTILITY");
+  const [libraryTopic, setLibraryTopic] = useState("");
+  const [libraryLanguage, setLibraryLanguage] = useState("en_US");
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
   const [selected, setSelected] = useState<LibraryTemplate | null>(null);
@@ -139,10 +196,23 @@ export default function WhatsAppTemplatesPage() {
     [categoryFilter, languageFilter, search, statusFilter, templates],
   );
 
-  async function loadLibrary(term = "") {
+  const libraryLanguageLabel =
+    LIBRARY_LANGUAGES.find((item) => item.value === libraryLanguage)?.label || "English (US)";
+
+  async function loadLibrary(
+    term = librarySearch,
+    category = libraryCategory,
+    topic = libraryTopic,
+    language = libraryLanguage,
+  ) {
     setLibraryLoading(true);
     try {
-      const rows = await browseTemplateLibrary(term ? { search: term } : {});
+      const rows = await browseTemplateLibrary({
+        search: term,
+        category,
+        topic,
+        language,
+      });
       setLibraryRows(rows);
       setLibraryLoaded(true);
     } catch (err) {
@@ -155,6 +225,22 @@ export default function WhatsAppTemplatesPage() {
   function openLibrary() {
     setSection("library");
     if (!libraryLoaded) void loadLibrary();
+  }
+
+  function pickLibraryCategory(next: string) {
+    setLibraryCategory(next);
+    void loadLibrary(librarySearch, next, libraryTopic, libraryLanguage);
+  }
+
+  function pickLibraryTopic(next: string) {
+    const value = libraryTopic === next ? "" : next;
+    setLibraryTopic(value);
+    void loadLibrary(librarySearch, libraryCategory, value, libraryLanguage);
+  }
+
+  function pickLibraryLanguage(next: string) {
+    setLibraryLanguage(next);
+    void loadLibrary(librarySearch, libraryCategory, libraryTopic, next);
   }
 
   async function removeTemplate(row: WhatsAppTemplate) {
@@ -415,44 +501,121 @@ export default function WhatsAppTemplatesPage() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Search Meta's template library"
+                    placeholder={`Search ${CATEGORY_LABELS[libraryCategory]?.toLowerCase() || ""} templates`}
                     value={librarySearch}
                     onChange={(event) => setLibrarySearch(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter") void loadLibrary(librarySearch);
+                      if (event.key === "Enter") void loadLibrary();
                     }}
                   />
                 </div>
-                <Button variant="outline" disabled={libraryLoading} onClick={() => void loadLibrary(librarySearch)}>
+                <Select value={libraryLanguage} onValueChange={pickLibraryLanguage}>
+                  <SelectTrigger className="w-[11.5rem]">
+                    <SelectValue placeholder="Language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIBRARY_LANGUAGES.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label} templates
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" disabled={libraryLoading} onClick={() => void loadLibrary()}>
                   {libraryLoading ? "Searching…" : "Search"}
                 </Button>
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {libraryRows.map((row) => (
-                  <button
-                    key={`${row.name}-${row.language}`}
-                    type="button"
-                    onClick={() => setSelected(row)}
-                    className="rounded-2xl border border-white/60 bg-white/45 p-4 text-left transition hover:-translate-y-0.5 hover:bg-white/70"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge variant="muted">
-                        {CATEGORY_LABELS[row.category.toUpperCase()] || row.category || "Template"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{row.language}</span>
-                    </div>
-                    <p className="mt-2 truncate text-sm font-medium">{row.name}</p>
-                    <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{row.body}</p>
-                  </button>
-                ))}
-              </div>
+              <div className="mt-4 grid gap-4 lg:grid-cols-[14.5rem_minmax(0,1fr)]">
+                <aside className="rounded-2xl border border-white/60 bg-white/40 p-3">
+                  <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Category
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {LIBRARY_CATEGORIES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => pickLibraryCategory(item.id)}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm",
+                          libraryCategory === item.id
+                            ? "bg-primary/10 font-medium text-primary"
+                            : "hover:bg-white/70",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-3.5 w-3.5 items-center justify-center rounded-full border",
+                            libraryCategory === item.id ? "border-primary" : "border-muted-foreground/40",
+                          )}
+                        >
+                          {libraryCategory === item.id ? (
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          ) : null}
+                        </span>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
 
-              {!libraryLoading && !libraryRows.length ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  No library templates returned for this search.
-                </p>
-              ) : null}
+                  <p className="mt-4 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Topics
+                  </p>
+                  <div className="mt-2 space-y-0.5">
+                    {LIBRARY_TOPICS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => pickLibraryTopic(item.id)}
+                        className={cn(
+                          "flex w-full rounded-xl px-2 py-1.5 text-left text-sm",
+                          libraryTopic === item.id
+                            ? "bg-primary/10 font-medium text-primary"
+                            : "text-foreground/80 hover:bg-white/70",
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </aside>
+
+                <div className="min-w-0">
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {libraryLoading
+                      ? `Loading ${libraryLanguageLabel} templates…`
+                      : `Showing ${libraryRows.length} ${libraryLanguageLabel} results`}
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {libraryRows.map((row) => (
+                      <button
+                        key={`${row.name}-${row.language}`}
+                        type="button"
+                        onClick={() => setSelected(row)}
+                        className="rounded-2xl border border-white/60 bg-white/45 p-3 text-left transition hover:-translate-y-0.5 hover:bg-white/70"
+                      >
+                        <TemplatePreview
+                          compact
+                          data={{
+                            header: row.header,
+                            body: row.body,
+                            footer: row.footer,
+                            buttons: row.buttons,
+                            samples: row.body_params,
+                          }}
+                        />
+                        <p className="mt-2 truncate text-xs text-muted-foreground">{row.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                  {!libraryLoading && !libraryRows.length ? (
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      No {libraryLanguageLabel} templates in this category. Try another language, topic, or search.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           )}
         </div>

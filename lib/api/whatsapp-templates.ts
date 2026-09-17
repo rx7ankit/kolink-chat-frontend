@@ -114,15 +114,15 @@ export async function browseTemplateLibrary(filters: {
   usecase?: string;
   industry?: string;
   language?: string;
+  category?: string;
 } = {}) {
   const params = new URLSearchParams();
+  params.set("language", filters.language || "en_US");
   for (const [key, value] of Object.entries(filters)) {
+    if (key === "language") continue;
     if (value) params.set(key, value);
   }
-  const query = params.toString();
-  return api<LibraryTemplate[]>(
-    workspacePath(`${BASE}/template-library${query ? `?${query}` : ""}`),
-  );
+  return api<LibraryTemplate[]>(workspacePath(`${BASE}/template-library?${params.toString()}`));
 }
 
 export async function importLibraryTemplate(input: {

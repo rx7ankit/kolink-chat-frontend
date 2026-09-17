@@ -32,19 +32,21 @@ export function TemplatePreview({
   data,
   className,
   title = "Template preview",
+  compact = false,
 }: {
   data: PreviewData;
   className?: string;
   title?: string;
+  compact?: boolean;
 }) {
   const body = fillVariables(data.body || "", data.samples);
   const header = fillVariables(data.header || "", data.samples);
   const buttons = data.buttons?.filter((button) => (button.text || "").trim()) ?? [];
 
   return (
-    <div className={cn("glass rounded-2xl p-5", className)}>
-      <p className="text-sm font-medium">{title}</p>
-      <div className="mt-4 rounded-2xl bg-[#e9e3db]/70 p-4">
+    <div className={cn(!compact && "glass rounded-2xl p-5", className)}>
+      {title && !compact ? <p className="text-sm font-medium">{title}</p> : null}
+      <div className={cn("rounded-2xl bg-[#e9e3db]/70 p-3", !compact && "mt-4 p-4")}>
         <div className="max-w-[19rem] rounded-2xl rounded-tl-sm bg-white/95 p-3 shadow-sm">
           {header ? <p className="text-sm font-semibold leading-snug">{header}</p> : null}
           {body ? (
@@ -55,7 +57,7 @@ export function TemplatePreview({
           {data.footer ? (
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{data.footer}</p>
           ) : null}
-          <p className="mt-1.5 text-right text-[10px] text-muted-foreground">11:59</p>
+          <p className="mt-1.5 text-right text-[10px] text-muted-foreground">09:15</p>
 
           {buttons.length ? (
             <div className="-mx-3 mt-1 border-t border-black/5">
