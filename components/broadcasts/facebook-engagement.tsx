@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Heart, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,13 +40,14 @@ export function FacebookBroadcastEngagement({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const likeLock = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await listFacebookBroadcastComments(item.id);
       setComments(data.comments);
-      setPostLiked(data.liked);
+      if (!likeLock.current) setPostLiked(Boolean(data.liked));
     } catch (error) {
       toast.error(error instanceof ApiError ? error.detail : "Could not load Facebook comments");
     } finally {
@@ -63,15 +64,19 @@ export function FacebookBroadcastEngagement({
 
   async function togglePostLike() {
     const next = !postLiked;
+    likeLock.current = true;
+    setPostLiked(next);
     setPostLiking(true);
     try {
       const updated = await setFacebookBroadcastLike(item.id, next);
       onItem(updated);
-      setPostLiked(next);
+      setPostLiked(Boolean(updated.platformStatuses.facebook?.liked) || next);
       toast.success(next ? "Page liked this post" : "Like removed");
     } catch (error) {
+      setPostLiked(!next);
       toast.error(error instanceof ApiError ? error.detail : "Could not update like");
     } finally {
+      likeLock.current = false;
       setPostLiking(false);
     }
   }
