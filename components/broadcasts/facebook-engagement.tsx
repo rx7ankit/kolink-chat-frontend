@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Heart, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Heart, Loader2, Pencil, RefreshCw, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,24 @@ export function FacebookBroadcastEngagement({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [replyTo, setReplyTo] = useState<FacebookBroadcastComment | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [replySending, setReplySending] = useState(false);
   const likeLock = useRef(false);
+
+  function replyParentId(row: FacebookBroadcastComment) {
+    return row.parent_id || row.id;
+  }
+
+  function insertReply(rows: FacebookBroadcastComment[], created: FacebookBroadcastComment) {
+    const parentId = created.parent_id;
+    if (!parentId) return [...rows, created];
+    const parentIndex = rows.findIndex((row) => row.id === parentId);
+    if (parentIndex < 0) return [...rows, created];
+    let insertAt = parentIndex + 1;
+    while (insertAt < rows.length && rows[insertAt].parent_id === parentId) insertAt += 1;
+    return [...rows.slice(0, insertAt), created, ...rows.slice(insertAt)];
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,6 +111,23 @@ export function FacebookBroadcastEngagement({
       toast.error(error instanceof ApiError ? error.detail : "Could not publish comment");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function sendReply(row: FacebookBroadcastComment) {
+    const message = replyDraft.trim();
+    if (!message) return;
+    setReplySending(true);
+    try {
+      const created = await createFacebookBroadcastComment(item.id, message, replyParentId(row));
+      setComments((rows) => insertReply(rows, created));
+      setReplyDraft("");
+      setReplyTo(null);
+      toast.success("Reply published on the Page");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.detail : "Could not publish reply");
+    } finally {
+      setReplySending(false);
     }
   }
 
@@ -208,6 +242,21 @@ export function FacebookBroadcastEngagement({
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  {!row.mine ? (
+                    <button
+                      type="button"
+                      disabled={busyId === row.id}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-white/80"
+                      aria-label="Reply to comment"
+                      onClick={() => {
+                        setReplyTo(row);
+                        setReplyDraft("");
+                        setEditingId(null);
+                      }}
+                    >
+                      <Reply className="h-4 w-4" />
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     disabled={busyId === row.id}
@@ -226,6 +275,7 @@ export function FacebookBroadcastEngagement({
                       onClick={() => {
                         setEditingId(row.id);
                         setEditText(row.message);
+                        setReplyTo(null);
                       }}
                     >
                       <Pencil className="h-4 w-4" />
@@ -242,6 +292,32 @@ export function FacebookBroadcastEngagement({
                   </button>
                 </div>
               </div>
+              {replyTo?.id === row.id ? (
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] font-medium text-primary">
+                    Replying to {row.from_name || "this comment"} as the Page
+                  </p>
+                  <textarea
+                    value={replyDraft}
+                    onChange={(event) => setReplyDraft(event.target.value)}
+                    placeholder="Write a reply as the Page…"
+                    className="h-16 w-full rounded-xl border border-white/60 bg-white/80 p-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={replySending || !replyDraft.trim()}
+                      onClick={() => void sendReply(row)}
+                    >
+                      {replySending ? "Posting…" : "Reply"}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setReplyTo(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ))
         )}
