@@ -1,0 +1,56 @@
+name: Deploy Chat web (EC2 staging)
+
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: kolink-chat-ec2-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build web image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=http://43.199.33.177:8100/api/v1 \
+            --build-arg NEXT_PUBLIC_APP_URL=http://43.199.33.177:3100 \
+            -t kolink-chat-web:dev .
+
+      - name: Pack image
+        run: |
+          mkdir -p dist
+          docker save kolink-chat-web:dev | gzip > dist/kolink-chat-web.tar.gz
+
+      - name: Copy to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: dist/*
+          target: /home/ubuntu/kolink-chat
+          strip_components: 1
+          overwrite: true
+
+      - name: Load image and start web only
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /home/ubuntu/kolink-chat
+            if [ ! -f docker-compose.yml ]; then
+              echo "Backend deploy has not copied docker-compose.yml yet. Push kolink-chat-backend dev first."
+              exit 1
+            fi
+            gzip -dc kolink-chat-web.tar.gz | sudo docker load
+            sudo COMPOSE_BAKE=false docker compose -p kolink-chat up -d web
+            rm -f kolink-chat-web.tar.gz
+            sudo docker image prune -f
