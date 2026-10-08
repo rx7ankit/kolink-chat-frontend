@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2, Music2, Plus, Trash2 } from "lucide-react";
+import { Check, ImagePlus, Loader2, Music2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { DestinationPanel } from "@/components/broadcasts/destination-panel";
@@ -11,7 +11,6 @@ import { PlatformPreview } from "@/components/broadcasts/preview";
 import { ChannelIcon } from "@/components/channel-badge";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -275,7 +274,17 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <Checkbox checked={isOn} className="pointer-events-none" />
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-md border",
+                        isOn
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-white/50 bg-white/30",
+                      )}
+                    >
+                      {isOn ? <Check className="h-3 w-3" /> : null}
+                    </span>
                     <ChannelIcon channel={item.id} size={16} />
                     <span className="text-sm font-medium">{item.label}</span>
                   </span>

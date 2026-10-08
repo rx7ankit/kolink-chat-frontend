@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
@@ -81,6 +81,14 @@ function metricsLabel(item: Broadcast) {
 }
 
 export default function BroadcastsPage() {
+  return (
+    <Suspense fallback={<p className="page-shell text-sm text-muted-foreground">Loading…</p>}>
+      <BroadcastsPageInner />
+    </Suspense>
+  );
+}
+
+function BroadcastsPageInner() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<Broadcast[]>([]);
