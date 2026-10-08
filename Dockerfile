@@ -2,7 +2,9 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# pnpm 12 fails the install when optional native build scripts are ignored.
+# unrs-resolver is ESLint-only; Next standalone does not need it.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM node:20-alpine AS builder
 WORKDIR /app

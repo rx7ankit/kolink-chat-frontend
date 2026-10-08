@@ -17,8 +17,8 @@ jobs:
       - name: Build web image
         run: |
           docker build \
-            --build-arg NEXT_PUBLIC_API_URL=http://43.199.33.177:8100/api/v1 \
-            --build-arg NEXT_PUBLIC_APP_URL=http://43.199.33.177:3100 \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.kolinkchat-dev.kolink.tech/api/v1 \
+            --build-arg NEXT_PUBLIC_APP_URL=https://kolinkchat-dev.kolink.tech \
             -t kolink-chat-web:dev .
 
       - name: Pack image

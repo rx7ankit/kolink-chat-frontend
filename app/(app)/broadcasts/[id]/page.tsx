@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlatformPreview } from "@/components/broadcasts/preview";
-import { FacebookBroadcastEngagement } from "@/components/broadcasts/facebook-engagement";
+import { BroadcastPostEngagement } from "@/components/broadcasts/post-engagement";
 import { PlatformStatusList } from "@/components/broadcasts/platform-status";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -138,7 +138,12 @@ export default function BroadcastDetailPage() {
               </div>
             ) : null}
           </section>
-          <FacebookBroadcastEngagement item={item} onItem={setItem} />
+          <BroadcastPostEngagement
+            item={item}
+            onItem={setItem}
+            preferred={preview}
+            onPreferred={(platform) => setPreview(platform)}
+          />
           <section className="glass rounded-2xl p-5">
             <p className="text-sm whitespace-pre-wrap">{item.body || "No caption"}</p>
           </section>

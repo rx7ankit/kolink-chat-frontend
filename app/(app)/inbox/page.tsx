@@ -616,11 +616,11 @@ export default function InboxPage() {
   const replyPlaceholder = isCommentsView ? t("inbox.commentPlaceholder") : t("inbox.placeholder");
   const emptyStateText =
     channel === "facebook" && folder === "all"
-      ? "Facebook post comments appear in the Comments folder. Page DMs appear under Messenger."
+      ? "Facebook Page DMs appear under Messenger. Comments on posts you published from Broadcasts are on that broadcast."
       : channel === "threads" && folder === "all"
-        ? "Threads private messages are not available via Meta's API yet. Open the Comments folder for post replies and @mentions."
+        ? "Threads private messages are not available via Meta's API yet. Replies on posts you published from Broadcasts are on that broadcast. Mentions stay in Comments."
         : channel === "threads"
-          ? "No Threads replies yet. Sync after someone comments on your posts or @mentions you."
+          ? "No Threads mentions yet. Replies on posts you published from Broadcasts are on that broadcast."
           : channel === "x" && folder === "comments"
             ? "No X mentions yet. Sync after someone mentions you or replies to a post."
             : channel === "x"

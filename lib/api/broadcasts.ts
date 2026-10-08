@@ -115,6 +115,8 @@ export async function deleteBroadcast(id: string) {
   return api<ApiBroadcast | { detail: string }>(workspacePath(`/broadcasts/${id}`), { method: "DELETE" });
 }
 
+export type BroadcastEngagementPlatform = "facebook" | "instagram" | "threads";
+
 export type FacebookBroadcastComment = {
   id: string;
   message: string;
@@ -124,6 +126,7 @@ export type FacebookBroadcastComment = {
   like_count: number;
   liked: boolean;
   mine: boolean;
+  hidden?: boolean;
   parent_id: string | null;
 };
 
@@ -134,16 +137,72 @@ export type FacebookBroadcastComments = {
   comments: FacebookBroadcastComment[];
 };
 
-export async function setFacebookBroadcastLike(id: string, liked: boolean) {
-  const row = await api<ApiBroadcast>(workspacePath(`/broadcasts/${id}/facebook/like`), {
+function commentsPath(id: string, platform: BroadcastEngagementPlatform, suffix = "") {
+  return workspacePath(`/broadcasts/${id}/${platform}/comments${suffix}`);
+}
+
+export async function setBroadcastPostLike(id: string, platform: "facebook" | "instagram", liked: boolean) {
+  const row = await api<ApiBroadcast>(workspacePath(`/broadcasts/${id}/${platform}/like`), {
     method: "POST",
     body: { liked },
   });
   return toUiBroadcast(row);
 }
 
+export async function listBroadcastComments(id: string, platform: BroadcastEngagementPlatform) {
+  return api<FacebookBroadcastComments>(commentsPath(id, platform));
+}
+
+export async function createBroadcastComment(
+  id: string,
+  platform: BroadcastEngagementPlatform,
+  message: string,
+  parentCommentId?: string | null,
+) {
+  return api<FacebookBroadcastComment>(commentsPath(id, platform), {
+    method: "POST",
+    body: { message, parent_comment_id: parentCommentId || null },
+  });
+}
+
+export async function setBroadcastCommentLike(
+  id: string,
+  platform: "facebook" | "instagram",
+  commentId: string,
+  liked: boolean,
+) {
+  return api<{ id: string; liked: boolean }>(
+    commentsPath(id, platform, `/${encodeURIComponent(commentId)}/like`),
+    { method: "POST", body: { liked } },
+  );
+}
+
+export async function hideBroadcastComment(id: string, commentId: string) {
+  return api<FacebookBroadcastComment>(
+    commentsPath(id, "instagram", `/${encodeURIComponent(commentId)}/hide`),
+    { method: "POST" },
+  );
+}
+
+export async function editBroadcastComment(id: string, commentId: string, message: string) {
+  return api<FacebookBroadcastComment>(
+    commentsPath(id, "facebook", `/${encodeURIComponent(commentId)}`),
+    { method: "PATCH", body: { message } },
+  );
+}
+
+export async function deleteBroadcastComment(id: string, platform: BroadcastEngagementPlatform, commentId: string) {
+  return api<{ detail: string }>(commentsPath(id, platform, `/${encodeURIComponent(commentId)}`), {
+    method: "DELETE",
+  });
+}
+
+export async function setFacebookBroadcastLike(id: string, liked: boolean) {
+  return setBroadcastPostLike(id, "facebook", liked);
+}
+
 export async function listFacebookBroadcastComments(id: string) {
-  return api<FacebookBroadcastComments>(workspacePath(`/broadcasts/${id}/facebook/comments`));
+  return listBroadcastComments(id, "facebook");
 }
 
 export async function createFacebookBroadcastComment(
@@ -151,31 +210,19 @@ export async function createFacebookBroadcastComment(
   message: string,
   parentCommentId?: string | null,
 ) {
-  return api<FacebookBroadcastComment>(workspacePath(`/broadcasts/${id}/facebook/comments`), {
-    method: "POST",
-    body: { message, parent_comment_id: parentCommentId || null },
-  });
+  return createBroadcastComment(id, "facebook", message, parentCommentId);
 }
 
 export async function setFacebookBroadcastCommentLike(id: string, commentId: string, liked: boolean) {
-  return api<{ id: string; liked: boolean }>(
-    workspacePath(`/broadcasts/${id}/facebook/comments/${encodeURIComponent(commentId)}/like`),
-    { method: "POST", body: { liked } },
-  );
+  return setBroadcastCommentLike(id, "facebook", commentId, liked);
 }
 
 export async function editFacebookBroadcastComment(id: string, commentId: string, message: string) {
-  return api<FacebookBroadcastComment>(
-    workspacePath(`/broadcasts/${id}/facebook/comments/${encodeURIComponent(commentId)}`),
-    { method: "PATCH", body: { message } },
-  );
+  return editBroadcastComment(id, commentId, message);
 }
 
 export async function deleteFacebookBroadcastComment(id: string, commentId: string) {
-  return api<{ detail: string }>(
-    workspacePath(`/broadcasts/${id}/facebook/comments/${encodeURIComponent(commentId)}`),
-    { method: "DELETE" },
-  );
+  return deleteBroadcastComment(id, "facebook", commentId);
 }
 
 export function isDeletedBroadcast(row: ApiBroadcast | { detail: string }): row is ApiBroadcast {
