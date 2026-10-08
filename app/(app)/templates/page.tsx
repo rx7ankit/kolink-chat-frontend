@@ -35,6 +35,11 @@ const TAB_CHANNELS: Record<Exclude<PlatformTab, "all">, string[]> = {
   facebook: ["facebook", "messenger"],
 };
 
+/** Templates that open a guided setup instead of a blank flow. */
+const SETUP_FLOWS: Record<string, string> = {
+  "comment-keyword-to-dm": "/automations/new",
+};
+
 function MessageTemplatesCard() {
   return (
     <Link
@@ -118,9 +123,15 @@ export default function TemplatesPage() {
                   </div>
                   <h2 className="mt-3 font-semibold">{template.name}</h2>
                   <p className="mt-2 flex-1 text-sm text-muted-foreground">{template.description}</p>
-                  <Button className="mt-4" onClick={() => void applyTemplate(template.id)}>
-                    Trigger automation
-                  </Button>
+                  {SETUP_FLOWS[template.slug] ? (
+                    <Button className="mt-4" asChild>
+                      <Link href={SETUP_FLOWS[template.slug]}>Set up automation</Link>
+                    </Button>
+                  ) : (
+                    <Button className="mt-4" onClick={() => void applyTemplate(template.id)}>
+                      Trigger automation
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

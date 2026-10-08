@@ -1,105 +1,110 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Copy, Loader2, MoreHorizontal, Plus, Trash2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import { ChannelBadge } from "@/components/channel-badge";
+import { PostPicker } from "@/components/ig-automations/post-picker";
+import { PostThumb } from "@/components/ig-automations/post-thumb";
 import { PageHeader } from "@/components/page-header";
-import { TablePagination, usePagination } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  createAutomation,
-  createKeyword,
-  createRule,
-  createSequence,
-  listAutomations,
-  listBasicAutomations,
-  listKeywords,
-  listRules,
-  listSequences,
-  toggleAutomation,
-  type ApiBasic,
-  type ApiKeyword,
-  type ApiRule,
-  type ApiSequence,
-} from "@/lib/api/automations";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api/client";
-import type { Automation } from "@/lib/mock";
-import type { ChannelId } from "@/lib/mock";
+import {
+  deleteIgAutomation,
+  duplicateIgAutomation,
+  isReel,
+  listIgAutomations,
+  updateIgAutomation,
+  type IgAutomation,
+  type IgMediaItem,
+} from "@/lib/api/ig-automations";
 import { useI18n } from "@/lib/i18n/provider";
+
+function postedLabel(row: IgAutomation) {
+  const value = row.posted_at || row.created_at;
+  return new Date(value).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export default function AutomationsPage() {
   const { t } = useI18n();
   const router = useRouter();
-  const [flows, setFlows] = useState<Automation[]>([]);
-  const [basics, setBasics] = useState<ApiBasic[]>([]);
-  const [keywords, setKeywords] = useState<ApiKeyword[]>([]);
-  const [sequences, setSequences] = useState<ApiSequence[]>([]);
-  const [rules, setRules] = useState<ApiRule[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [keywordPhrase, setKeywordPhrase] = useState("");
-  const [sequenceName, setSequenceName] = useState("");
-  const [ruleName, setRuleName] = useState("");
-  const pager = usePagination(flows, 4);
-
-  const reload = useCallback(async () => {
-    try {
-      const [a, b, k, s, r] = await Promise.all([
-        listAutomations(),
-        listBasicAutomations(),
-        listKeywords(),
-        listSequences(),
-        listRules(),
-      ]);
-      setFlows(a);
-      setBasics(b);
-      setKeywords(k);
-      setSequences(s);
-      setRules(r);
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.detail : "Failed to load automations");
-    }
-  }, []);
+  const [rows, setRows] = useState<IgAutomation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [duplicating, setDuplicating] = useState<IgAutomation | null>(null);
+  const [duplicateMedia, setDuplicateMedia] = useState<IgMediaItem | null>(null);
+  const [deleting, setDeleting] = useState<IgAutomation | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    void listIgAutomations()
+      .then(setRows)
+      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load automations"))
+      .finally(() => setLoading(false));
+  }, []);
 
-  async function toggle(id: string) {
+  async function toggle(row: IgAutomation, enabled: boolean) {
+    setRows((current) => current.map((item) => (item.id === row.id ? { ...item, enabled } : item)));
     try {
-      const row = await toggleAutomation(id);
-      setFlows((current) =>
-        current.map((flow) =>
-          flow.id === id ? { ...flow, status: row.status } : flow,
-        ),
-      );
+      await updateIgAutomation(row.id, { enabled });
+      toast.success(enabled ? "Automation turned on" : "Automation turned off");
     } catch (error) {
+      setRows((current) => current.map((item) => (item.id === row.id ? { ...item, enabled: !enabled } : item)));
       toast.error(error instanceof ApiError ? error.detail : "Could not update");
     }
   }
 
-  const firstId = flows[0]?.id;
-
-  async function newFlow() {
-    setCreating(true);
+  async function confirmDuplicate() {
+    if (!duplicating || !duplicateMedia) return;
+    setBusy(true);
     try {
-      const created = await createAutomation({
-        name: "Untitled flow",
-        trigger: "Keyword",
-        channels: ["whatsapp"],
-      });
-      toast.success("Flow created");
-      router.push(`/automations/${created.id}`);
+      const created = await duplicateIgAutomation(duplicating.id, duplicateMedia.id);
+      toast.success("Automation copied to the new post");
+      setDuplicating(null);
+      setDuplicateMedia(null);
+      router.push(`/automations/ig/${created.id}`);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.detail : "Could not create flow");
+      toast.error(error instanceof ApiError ? error.detail : "Could not duplicate");
     } finally {
-      setCreating(false);
+      setBusy(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    setBusy(true);
+    try {
+      await deleteIgAutomation(deleting.id);
+      setRows((current) => current.filter((item) => item.id !== deleting.id));
+      toast.success("Automation deleted");
+      setDeleting(null);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.detail : "Could not delete");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -107,210 +112,169 @@ export default function AutomationsPage() {
     <div className="page-shell">
       <PageHeader
         title={t("automations.title")}
-        description="Flows, keywords, sequences, and rules"
+        description="Instagram comment automations, newest post first"
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={firstId ? `/automations/${firstId}` : "/templates"}>Open flow builder</Link>
-            </Button>
-            <Button disabled={creating} onClick={() => void newFlow()}>
-              New automation
-            </Button>
-          </div>
+          <Button asChild>
+            <Link href="/automations/new">
+              <Plus className="mr-1 h-4 w-4" /> New automation
+            </Link>
+          </Button>
         }
       />
-      <Tabs defaultValue="flows">
-        <TabsList className="h-auto w-full justify-start overflow-x-auto">
-          <TabsTrigger value="flows">My Automations</TabsTrigger>
-          <TabsTrigger value="basic">Basic</TabsTrigger>
-          <TabsTrigger value="keywords">Keywords</TabsTrigger>
-          <TabsTrigger value="sequences">Sequences</TabsTrigger>
-          <TabsTrigger value="rules">Rules</TabsTrigger>
-        </TabsList>
-        <TabsContent value="flows">
-          <div className="glass overflow-hidden rounded-2xl">
-            <table className="w-full text-sm">
-              <thead className="border-b text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Trigger</th>
-                  <th className="px-4 py-3 font-medium">Channels</th>
-                  <th className="px-4 py-3 font-medium">Sent</th>
-                  <th className="px-4 py-3 font-medium">Live</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pager.slice.map((flow: Automation) => (
-                  <tr key={flow.id} className="border-b last:border-0">
-                    <td className="px-4 py-3">
-                      <Link href={`/automations/${flow.id}`} className="font-medium hover:text-primary">
-                        {flow.name}
-                      </Link>
-                      <p className="text-xs capitalize text-muted-foreground">{flow.status}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{flow.trigger}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {flow.channels.map((channel) => (
-                          <ChannelBadge key={channel} channel={channel} />
-                        ))}
+
+      {loading ? (
+        <div className="flex justify-center py-16 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      ) : !rows.length ? (
+        <div className="glass flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
+          <p className="font-medium">No automations yet</p>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Pick a post or reel, choose trigger keywords, and koLink replies to the comment and DMs each commenter
+            what you promised.
+          </p>
+          <Button asChild>
+            <Link href="/automations/new">Set up your first automation</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="glass overflow-hidden rounded-2xl">
+          <table className="w-full text-sm">
+            <thead className="border-b text-left text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Post</th>
+                <th className="hidden px-4 py-3 font-medium md:table-cell">Keywords</th>
+                <th className="hidden px-4 py-3 font-medium lg:table-cell">Results</th>
+                <th className="px-4 py-3 font-medium">On</th>
+                <th className="w-12 px-2 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b last:border-0 hover:bg-white/40">
+                  <td className="px-4 py-3">
+                    <Link href={`/automations/ig/${row.id}`} className="flex items-center gap-3">
+                      <PostThumb src={row.thumbnail_url} reel={isReel(row)} className="h-14 w-14" />
+                      <div className="min-w-0">
+                        <p className="line-clamp-1 font-medium hover:text-primary">{row.name}</p>
+                        <p className="text-xs text-muted-foreground">{postedLabel(row)}</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge variant="rose">{isReel(row) ? "Reel" : "Post"}</Badge>
+                          {row.follow_required ? (
+                            <Badge variant="sky" className="gap-1">
+                              <UserCheck className="h-3 w-3" /> Followers only
+                            </Badge>
+                          ) : null}
+                          {row.from_broadcast ? <Badge variant="muted">koLink broadcast</Badge> : null}
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">{flow.sent}</td>
-                    <td className="px-4 py-3">
-                      <Switch
-                        checked={flow.status === "live"}
-                        onCheckedChange={() => void toggle(flow.id)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <TablePagination
-              page={pager.page}
-              pageCount={pager.pageCount}
-              total={pager.total}
-              pageSize={pager.pageSize}
-              onPageChange={pager.setPage}
+                    </Link>
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <div className="flex max-w-xs flex-wrap gap-1">
+                      {row.keywords.slice(0, 4).map((keyword) => (
+                        <Badge key={keyword} variant="outline">
+                          {keyword}
+                        </Badge>
+                      ))}
+                      {row.keywords.length > 4 ? (
+                        <Badge variant="muted">+{row.keywords.length - 4}</Badge>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
+                    <p>
+                      <span className="font-medium text-foreground">{row.stats.matched}</span> matched ·{" "}
+                      <span className="font-medium text-foreground">{row.stats.delivered}</span> delivered
+                    </p>
+                    {row.stats.waiting_follow ? <p>{row.stats.waiting_follow} waiting to follow</p> : null}
+                    {row.stats.failed ? <p className="text-destructive">{row.stats.failed} failed</p> : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Switch checked={row.enabled} onCheckedChange={(value) => void toggle(row, value)} />
+                  </td>
+                  <td className="px-2 py-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="More actions">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/automations/ig/${row.id}`}>Open</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setDuplicating(row)}>
+                          <Copy className="mr-2 h-4 w-4" /> Duplicate to another post
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onSelect={() => setDeleting(row)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Dialog
+        open={!!duplicating}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDuplicating(null);
+            setDuplicateMedia(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90svh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Duplicate to another post</DialogTitle>
+            <DialogDescription>
+              Same keywords, follow check, and messages — pick the post or reel for the copy.
+            </DialogDescription>
+          </DialogHeader>
+          {duplicating ? (
+            <PostPicker
+              selectedId={duplicateMedia?.id ?? null}
+              onSelect={setDuplicateMedia}
+              disabledIds={[duplicating.media_id]}
             />
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDuplicating(null)}>
+              Cancel
+            </Button>
+            <Button disabled={!duplicateMedia || busy} onClick={() => void confirmDuplicate()}>
+              {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Duplicate
+            </Button>
           </div>
-        </TabsContent>
-        <TabsContent value="basic">
-          <div className="grid gap-3 md:grid-cols-2">
-            {basics.map((item) => (
-              <div key={item.id} className="glass rounded-2xl p-5">
-                <ChannelBadge channel={item.channel as ChannelId} />
-                <h3 className="mt-3 font-medium">{item.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-              </div>
-            ))}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete automation?</DialogTitle>
+            <DialogDescription>
+              New comments on “{deleting?.name}” will no longer get replies or DMs. Its activity history is removed
+              too.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={busy} onClick={() => void confirmDelete()}>
+              Delete
+            </Button>
           </div>
-        </TabsContent>
-        <TabsContent value="keywords">
-          <form
-            className="mb-3 flex flex-wrap gap-2"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const phrase = keywordPhrase.trim();
-              if (!phrase) return;
-              try {
-                const row = await createKeyword({
-                  phrase,
-                  flow_name: "Untitled flow",
-                  channel: "whatsapp",
-                });
-                setKeywords((current) => [...current, row]);
-                setKeywordPhrase("");
-                toast.success("Keyword added");
-              } catch (error) {
-                toast.error(error instanceof ApiError ? error.detail : "Could not add keyword");
-              }
-            }}
-          >
-            <Input
-              value={keywordPhrase}
-              onChange={(event) => setKeywordPhrase(event.target.value)}
-              placeholder="Keyword phrase"
-              className="max-w-xs"
-            />
-            <Button type="submit">Add keyword</Button>
-          </form>
-          <div className="glass p-2 rounded-2xl">
-            {keywords.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-3 py-3">
-                <div>
-                  <p className="font-medium">{item.phrase}</p>
-                  <p className="text-xs text-muted-foreground">{item.flow_name}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ChannelBadge channel={item.channel as ChannelId} />
-                  <Badge variant="muted">{item.hits} hits</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="sequences">
-          <form
-            className="mb-3 flex flex-wrap gap-2"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const name = sequenceName.trim();
-              if (!name) return;
-              try {
-                const row = await createSequence({ name, step_count: 3, status: "draft" });
-                setSequences((current) => [...current, row]);
-                setSequenceName("");
-                toast.success("Sequence added");
-              } catch (error) {
-                toast.error(error instanceof ApiError ? error.detail : "Could not add sequence");
-              }
-            }}
-          >
-            <Input
-              value={sequenceName}
-              onChange={(event) => setSequenceName(event.target.value)}
-              placeholder="Sequence name"
-              className="max-w-xs"
-            />
-            <Button type="submit">Add sequence</Button>
-          </form>
-          <div className="grid gap-3 md:grid-cols-3">
-            {sequences.map((item) => (
-              <div key={item.id} className="glass rounded-2xl p-5">
-                <h3 className="font-medium">{item.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {item.step_count} steps · {item.subscribers} in sequence
-                </p>
-                <Badge className="mt-3" variant={item.status === "live" ? "mint" : "muted"}>
-                  {item.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="rules">
-          <form
-            className="mb-3 flex flex-wrap gap-2"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const name = ruleName.trim();
-              if (!name) return;
-              try {
-                const row = await createRule({
-                  name,
-                  condition: "tag is VIP",
-                  action: "assign to inbox",
-                });
-                setRules((current) => [...current, row]);
-                setRuleName("");
-                toast.success("Rule added");
-              } catch (error) {
-                toast.error(error instanceof ApiError ? error.detail : "Could not add rule");
-              }
-            }}
-          >
-            <Input
-              value={ruleName}
-              onChange={(event) => setRuleName(event.target.value)}
-              placeholder="Rule name"
-              className="max-w-xs"
-            />
-            <Button type="submit">Add rule</Button>
-          </form>
-          <div className="space-y-3">
-            {rules.map((item) => (
-              <div key={item.id} className="glass rounded-2xl p-5">
-                <h3 className="font-medium">{item.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  If {item.condition} → {item.action}
-                </p>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
