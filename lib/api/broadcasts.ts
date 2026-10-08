@@ -315,9 +315,9 @@ export function liveDeleteCopy(item: { name?: string; platforms?: string[]; chan
   const networks = joinNetworkNames(liveNetworkNames(item));
   const name = item.name || "this post";
   return {
-    dialog: `Remove “${name}” from ${networks}? It will stay in koLink marked as Deleted.`,
-    confirm: `Remove this post from ${networks}? It will stay in koLink marked as Deleted.`,
-    success: `Removed from ${networks}`,
+    dialog: `Unpublish “${name}” from ${networks}? It will move to the Unpublished tab in koLink.`,
+    confirm: `Unpublish this post from ${networks}? It will move to the Unpublished tab in koLink.`,
+    success: `Unpublished from ${networks} — moved to Unpublished`,
     fail: `Could not remove the post from ${networks}. The listing was left unchanged.`,
   };
 }

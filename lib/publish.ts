@@ -100,6 +100,6 @@ export function statusLabel(status: string) {
   if (status === "social_post") return "Social post";
   if (status === "audience_dm") return "Audience DM";
   if (status === "sent") return "published";
-  if (status === "deleted") return "Deleted";
+  if (status === "deleted") return "Unpublished";
   return status.replaceAll("_", " ");
 }

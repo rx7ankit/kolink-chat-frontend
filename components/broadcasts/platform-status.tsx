@@ -52,7 +52,7 @@ export function PlatformStatusList({
                   View post
                 </a>
               ) : status === "deleted" ? (
-                <span className="text-[11px] font-medium text-muted-foreground">Deleted</span>
+                <span className="text-[11px] font-medium text-muted-foreground">Unpublished</span>
               ) : row?.simulated ? (
                 <span className="text-[11px] font-medium text-amber-700">Simulated only</span>
               ) : row?.error ? (

@@ -186,7 +186,8 @@ export default function BroadcastDetailPage() {
                 const result = await deleteBroadcast(item.id);
                 if (isDeletedBroadcast(result)) {
                   setItem(toUiBroadcast(result));
-                  toast.success(deleteCopy.success);
+                  toast.success(liveSocial ? deleteCopy.success : "Broadcast deleted");
+                  if (liveSocial) router.push("/broadcasts?tab=unpublished");
                 } else if (liveSocial) {
                   toast.error(deleteCopy.fail);
                 } else {
@@ -200,7 +201,7 @@ export default function BroadcastDetailPage() {
               }
             }}
           >
-            Delete
+            {liveSocial ? "Unpublish" : "Delete"}
           </Button>
           ) : null}
         </aside>

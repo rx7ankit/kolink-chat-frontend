@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,10 +50,22 @@ import type { Broadcast } from "@/lib/mock";
 import { PUBLISH_PLATFORMS, asChannelId, overallBadgeVariant, statusLabel, type PublishPlatformId } from "@/lib/publish";
 import { formatRelativeTime } from "@/lib/utils";
 
-const TABS: { id: "all" | PublishPlatformId; label: string }[] = [
+type BroadcastTab = "all" | "unpublished" | PublishPlatformId;
+
+const TABS: { id: BroadcastTab; label: string }[] = [
   { id: "all", label: "All" },
-  ...PUBLISH_PLATFORMS.map((item) => ({ id: item.id, label: item.id === "x" ? "X" : item.label.replace(" Page", "") })),
+  ...PUBLISH_PLATFORMS.map((item) => ({
+    id: item.id,
+    label: item.id === "x" ? "X" : item.label.replace(" Page", ""),
+  })),
+  { id: "unpublished", label: "Unpublished" },
 ];
+
+function isUnpublishedListing(item: Broadcast) {
+  if (item.status === "deleted") return true;
+  const platform = listingPlatform(item);
+  return item.platformStatuses?.[platform]?.status === "deleted";
+}
 
 function metricsLabel(item: Broadcast) {
   if (item.postMode === "audience_dm") {
@@ -69,15 +82,20 @@ function metricsLabel(item: Broadcast) {
 
 export default function BroadcastsPage() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<Broadcast[]>([]);
-  const [tab, setTab] = useState<"all" | PublishPlatformId>("all");
+  const [tab, setTab] = useState<BroadcastTab>("all");
   const [pendingDelete, setPendingDelete] = useState<Broadcast | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const liveRows = useMemo(() => rows.filter((row) => !isUnpublishedListing(row)), [rows]);
+  const unpublishedRows = useMemo(() => rows.filter(isUnpublishedListing), [rows]);
+
   const listings = useMemo(() => {
-    if (tab === "all") return rows;
-    return rows.filter((row) => listingPlatform(row) === tab);
-  }, [rows, tab]);
+    if (tab === "unpublished") return unpublishedRows;
+    if (tab === "all") return liveRows;
+    return liveRows.filter((row) => listingPlatform(row) === tab);
+  }, [liveRows, unpublishedRows, tab]);
 
   const pager = usePagination(listings, 6);
 
@@ -86,14 +104,14 @@ export default function BroadcastsPage() {
   }, [tab, pager.setPage]);
 
   const counts = useMemo(() => {
-    const next: Record<string, number> = { all: rows.length };
+    const next: Record<string, number> = { all: liveRows.length, unpublished: unpublishedRows.length };
     for (const item of PUBLISH_PLATFORMS) next[item.id] = 0;
-    for (const row of rows) {
+    for (const row of liveRows) {
       const platform = listingPlatform(row);
       next[platform] = (next[platform] || 0) + 1;
     }
     return next;
-  }, [rows]);
+  }, [liveRows, unpublishedRows]);
 
   const reload = useCallback(async () => {
     try {
@@ -107,16 +125,26 @@ export default function BroadcastsPage() {
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    const requested = searchParams.get("tab");
+    if (!requested) return;
+    if (requested === "unpublished" || requested === "all" || PUBLISH_PLATFORMS.some((item) => item.id === requested)) {
+      setTab(requested as BroadcastTab);
+    }
+  }, [searchParams]);
+
   const emptyCopy =
-    tab === "all"
-      ? "No broadcasts yet. Create your first post from New broadcast."
-      : `No ${TABS.find((item) => item.id === tab)?.label || tab} posts yet.`;
+    tab === "unpublished"
+      ? "No unpublished posts. Unpublish a live post and it will show up here."
+      : tab === "all"
+        ? "No live broadcasts yet. Create your first post from New broadcast."
+        : `No live ${TABS.find((item) => item.id === tab)?.label || tab} posts yet.`;
 
   return (
     <div className="page-shell">
       <PageHeader
         title={t("broadcasts.title")}
-        description="Compose once, then each network is its own listing — publish, schedule, and delete independently."
+        description="Compose once, then each network is its own listing. Unpublished posts leave All and the network tabs."
         actions={
           <Button asChild>
             <Link href="/broadcasts/new">New broadcast</Link>
@@ -124,7 +152,7 @@ export default function BroadcastsPage() {
         }
       />
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as "all" | PublishPlatformId)}>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as BroadcastTab)}>
         <TabsList className="mb-4 h-auto w-full justify-start overflow-x-auto">
           {TABS.map((item) => (
             <TabsTrigger key={item.id} value={item.id} className="gap-1.5">
@@ -217,7 +245,9 @@ export default function BroadcastsPage() {
                           Duplicate
                         </DropdownMenuItem>
                         {item.status !== "deleted" ? (
-                          <DropdownMenuItem onClick={() => setPendingDelete(item)}>Delete</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setPendingDelete(item)}>
+                            {isLiveSocialBroadcast(item) ? "Unpublish" : "Delete"}
+                          </DropdownMenuItem>
                         ) : null}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -239,7 +269,7 @@ export default function BroadcastsPage() {
       <Dialog open={!!pendingDelete} onOpenChange={() => !busy && setPendingDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete broadcast</DialogTitle>
+            <DialogTitle>{pendingDelete && isLiveSocialBroadcast(pendingDelete) ? "Unpublish post" : "Delete broadcast"}</DialogTitle>
             <DialogDescription>
               {pendingDelete
                 ? isLiveSocialBroadcast(pendingDelete)
@@ -268,6 +298,7 @@ export default function BroadcastsPage() {
                         ? liveDeleteCopy(pendingDelete).success
                         : "Broadcast deleted",
                     );
+                    if (isLiveSocialBroadcast(pendingDelete)) setTab("unpublished");
                   } else if (isLiveSocialBroadcast(pendingDelete)) {
                     toast.error(liveDeleteCopy(pendingDelete).fail);
                     await reload();
@@ -283,7 +314,7 @@ export default function BroadcastsPage() {
                 }
               }}
             >
-              Delete
+              {pendingDelete && isLiveSocialBroadcast(pendingDelete) ? "Unpublish" : "Delete"}
             </Button>
           </div>
         </DialogContent>
