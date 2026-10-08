@@ -239,6 +239,16 @@ export function isLiveInstagramBroadcast(item: {
   return isLivePlatformBroadcast(item, "instagram");
 }
 
+export function isLiveFacebookBroadcast(item: {
+  channel?: string;
+  platforms?: string[];
+  status?: string;
+  postMode?: string;
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  return isLivePlatformBroadcast(item, "facebook");
+}
+
 export function isLiveThreadsBroadcast(item: {
   channel?: string;
   platforms?: string[];
@@ -256,7 +266,7 @@ export function isLiveSocialBroadcast(item: {
   postMode?: string;
   platformStatuses?: Record<string, PlatformStatus | undefined>;
 }) {
-  return isLiveInstagramBroadcast(item) || isLiveThreadsBroadcast(item);
+  return isLiveInstagramBroadcast(item) || isLiveFacebookBroadcast(item) || isLiveThreadsBroadcast(item);
 }
 
 function isLivePlatformBroadcast(
@@ -267,7 +277,7 @@ function isLivePlatformBroadcast(
     postMode?: string;
     platformStatuses?: Record<string, PlatformStatus | undefined>;
   },
-  platform: "instagram" | "threads",
+  platform: "instagram" | "facebook" | "threads",
 ) {
   if ((item.postMode || "social_post") === "audience_dm") return false;
   const platforms = item.platforms?.length ? item.platforms : item.channel ? [item.channel] : [];
@@ -277,31 +287,34 @@ function isLivePlatformBroadcast(
   return item.status === "published" || item.status === "partially_failed" || item.status === "sent";
 }
 
+function liveNetworkNames(item: {
+  channel?: string;
+  platforms?: string[];
+  status?: string;
+  postMode?: string;
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  const names: string[] = [];
+  if (isLiveInstagramBroadcast(item)) names.push("Instagram");
+  if (isLiveFacebookBroadcast(item)) names.push("Facebook");
+  if (isLiveThreadsBroadcast(item)) names.push("Threads");
+  return names;
+}
+
+function joinNetworkNames(names: string[]) {
+  if (names.length <= 1) return names[0] || "this network";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
 export function liveDeleteCopy(item: { name?: string; platforms?: string[]; channel?: string; status?: string; postMode?: string; platformStatuses?: Record<string, PlatformStatus | undefined> }) {
-  const ig = isLiveInstagramBroadcast(item);
-  const th = isLiveThreadsBroadcast(item);
+  const networks = joinNetworkNames(liveNetworkNames(item));
   const name = item.name || "this post";
-  if (ig && th) {
-    return {
-      dialog: `Remove “${name}” from Instagram and Threads? It will stay in koLink marked as Deleted.`,
-      confirm: "Remove this post from Instagram and Threads? It will stay in koLink marked as Deleted.",
-      success: "Removed from Instagram and Threads",
-      fail: "Could not remove the post from Instagram and Threads. The listing was left unchanged.",
-    };
-  }
-  if (th) {
-    return {
-      dialog: `Remove “${name}” from Threads? It will stay in koLink marked as Deleted.`,
-      confirm: "Remove this post from Threads? It will stay in koLink marked as Deleted.",
-      success: "Removed from Threads",
-      fail: "Could not remove the post from Threads. The listing was left unchanged.",
-    };
-  }
   return {
-    dialog: `Remove “${name}” from Instagram? It will stay in koLink marked as Deleted.`,
-    confirm: "Remove this post from Instagram? It will stay in koLink marked as Deleted.",
-    success: "Removed from Instagram",
-    fail: "Could not remove the post from Instagram. The listing was left unchanged.",
+    dialog: `Remove “${name}” from ${networks}? It will stay in koLink marked as Deleted.`,
+    confirm: `Remove this post from ${networks}? It will stay in koLink marked as Deleted.`,
+    success: `Removed from ${networks}`,
+    fail: `Could not remove the post from ${networks}. The listing was left unchanged.`,
   };
 }
 
