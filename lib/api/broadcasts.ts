@@ -23,6 +23,7 @@ export type ApiBroadcast = {
   audience_label: string;
   body: string;
   media_urls: string[];
+  thumbnail_url?: string | null;
   status: BroadcastStatus;
   schedule_at: string | null;
   platform_statuses: Record<string, PlatformStatus>;
@@ -42,6 +43,7 @@ export type BroadcastPayload = {
   audience_key: string;
   body: string;
   media_urls: string[];
+  thumbnail_url?: string | null;
   schedule_at?: string | null;
   send_now?: boolean;
   save_draft?: boolean;
@@ -58,6 +60,7 @@ export function toUiBroadcast(row: ApiBroadcast): Broadcast {
     postType: row.post_type || "feed",
     body: row.body || "",
     mediaUrls: row.media_urls || [],
+    thumbnailUrl: row.thumbnail_url || null,
     audience: row.audience_label,
     audienceKey: row.audience_key,
     status: row.status,
@@ -83,10 +86,11 @@ export async function getBroadcast(id: string) {
 }
 
 export async function createBroadcast(data: BroadcastPayload) {
-  return api<ApiBroadcast>(workspacePath("/broadcasts"), {
+  const rows = await api<ApiBroadcast[] | ApiBroadcast>(workspacePath("/broadcasts"), {
     method: "POST",
     body: data,
   });
+  return Array.isArray(rows) ? rows : [rows];
 }
 
 export async function updateBroadcast(id: string, data: Partial<BroadcastPayload>) {

@@ -10,6 +10,7 @@ export type Broadcast = {
   postType: PostType;
   body: string;
   mediaUrls: string[];
+  thumbnailUrl?: string | null;
   audience: string;
   audienceKey: string;
   status: BroadcastStatus;

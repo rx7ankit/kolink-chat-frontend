@@ -20,7 +20,6 @@ import {
   sendBroadcast,
   scheduleBroadcast,
   updateBroadcast,
-  type ApiBroadcast,
 } from "@/lib/api/broadcasts";
 import { listChannels, type ApiChannel } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
@@ -211,22 +210,36 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
         media_urls: resolvedMedia,
         save_draft: action === "draft",
       };
-      let row: ApiBroadcast;
       if (initial?.id) {
-        row = await updateBroadcast(initial.id, payload);
-      } else {
-        row = await createBroadcast(payload);
-      }
-      if (action === "publish") {
-        const sent = await sendBroadcast(row.id);
-        toast.success("Published — check platform results");
-        router.push(`/broadcasts/${sent.id}`);
+        const row = await updateBroadcast(initial.id, payload);
+        if (action === "publish") {
+          const sent = await sendBroadcast(row.id);
+          toast.success("Published — check platform results");
+          router.push(`/broadcasts/${sent.id}`);
+          return;
+        }
+        if (action === "schedule") {
+          await scheduleBroadcast(row.id, new Date(scheduleAt).toISOString());
+          toast.success("Broadcast scheduled");
+        } else {
+          toast.success("Draft saved");
+        }
+        router.push("/broadcasts");
         return;
-      } else if (action === "schedule") {
-        await scheduleBroadcast(row.id, new Date(scheduleAt).toISOString());
-        toast.success("Broadcast scheduled");
+      }
+
+      const created = await createBroadcast(payload);
+      if (action === "publish") {
+        await Promise.all(created.map((item) => sendBroadcast(item.id)));
+        toast.success(created.length > 1 ? `Published ${created.length} posts` : "Published — check platform results");
+        router.push("/broadcasts");
+        return;
+      }
+      if (action === "schedule") {
+        await Promise.all(created.map((item) => scheduleBroadcast(item.id, new Date(scheduleAt).toISOString())));
+        toast.success(created.length > 1 ? `Scheduled ${created.length} posts` : "Broadcast scheduled");
       } else {
-        toast.success("Draft saved");
+        toast.success(created.length > 1 ? `Saved ${created.length} drafts` : "Draft saved");
       }
       router.push("/broadcasts");
     } catch (error) {

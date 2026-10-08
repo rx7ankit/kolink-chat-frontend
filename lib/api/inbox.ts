@@ -363,7 +363,7 @@ export async function uploadInboxFile(file: File) {
     }
     throw new Error(detail || "Upload failed");
   }
-  return (await res.json()) as { url: string; content_type: string };
+  return (await res.json()) as { url: string; content_type: string; thumbnail_url?: string | null };
 }
 
 export async function sendMessage(

@@ -1,5 +1,23 @@
 import { uploadInboxFile } from "@/lib/api/inbox";
+import { API_URL } from "@/lib/api/url";
 import { detectMediaKind, type PostType, type PublishPlatformId } from "@/lib/publish";
+
+export function publicMediaUrl(url: string | null | undefined): string {
+  const value = (url || "").trim();
+  if (!value) return "";
+  if (value.startsWith("data:") || value.startsWith("blob:")) return value;
+  const marker = value.includes("/api/v1/uploads/")
+    ? "/api/v1/uploads/"
+    : value.includes("/api/v1/media/")
+      ? "/api/v1/media/"
+      : "";
+  if (!marker) {
+    if (value.startsWith("/")) return `${API_URL.replace(/\/api\/v1$/, "")}${value}`;
+    return value;
+  }
+  const path = value.slice(value.indexOf(marker));
+  return `${API_URL.replace(/\/api\/v1$/, "")}${path}`;
+}
 
 function platformsRequiringMedia(platforms: PublishPlatformId[], postType: PostType): boolean {
   return platforms.some((platform) => {
