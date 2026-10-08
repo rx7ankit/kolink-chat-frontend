@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
@@ -37,6 +37,10 @@ export default function FlowBuilderPage() {
       }
     })();
   }, [id]);
+
+  const onPersist = useCallback((flow: { nodes: Node<FlowData>[]; edges: Edge[] }) => {
+    setDraft(flow);
+  }, []);
 
   async function save(andPublish = false) {
     const flow = draft ?? { nodes: nodes ?? [], edges: edges ?? [] };
@@ -88,7 +92,7 @@ export default function FlowBuilderPage() {
           <FlowCanvas
             initialNodes={nodes}
             initialEdges={edges}
-            onPersist={(flow) => setDraft(flow)}
+            onPersist={onPersist}
           />
         ) : null}
       </div>

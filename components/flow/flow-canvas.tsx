@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -94,9 +94,14 @@ export function FlowCanvas({
   const [edges, setEdges, onEdgesChange] = useEdgesState(incomingEdges?.length ? incomingEdges : initialEdges);
   const [selected, setSelected] = useState<Node<FlowData> | null>(null);
 
+  const persistRef = useRef(onPersist);
+  useEffect(() => {
+    persistRef.current = onPersist;
+  }, [onPersist]);
+
   const persist = useCallback(() => {
-    onPersist?.({ nodes, edges });
-  }, [nodes, edges, onPersist]);
+    persistRef.current?.({ nodes, edges });
+  }, [nodes, edges]);
 
   useEffect(() => {
     persist();
