@@ -14,43 +14,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build web image
+      - name: Require EC2 secrets
         run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=https://api.kolinkchat-dev.kolink.tech/api/v1 \
-            --build-arg NEXT_PUBLIC_APP_URL=https://kolinkchat-dev.kolink.tech \
-            -t kolink-chat-web:dev .
+          if [ -z "${{ secrets.EC2_HOST }}" ] || [ -z "${{ secrets.EC2_USER }}" ] || [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            echo "Add GitHub secrets EC2_HOST, EC2_USER, EC2_SSH_KEY on this repo so a push to dev can SSH to staging."
+            exit 1
+          fi
 
-      - name: Pack image
+      - name: SSH key
         run: |
-          mkdir -p dist
-          docker save kolink-chat-web:dev | gzip > dist/kolink-chat-web.tar.gz
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Copy to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: dist/*
-          target: /home/ubuntu/kolink-chat
-          strip_components: 1
-          overwrite: true
-
-      - name: Load image and start web only
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd /home/ubuntu/kolink-chat
-            if [ ! -f docker-compose.yml ]; then
-              echo "Backend deploy has not copied docker-compose.yml yet. Push kolink-chat-backend dev first."
-              exit 1
-            fi
-            gzip -dc kolink-chat-web.tar.gz | sudo docker load
-            sudo COMPOSE_BAKE=false docker compose -p kolink-chat up -d web
-            rm -f kolink-chat-web.tar.gz
-            sudo docker image prune -f
+      - name: Sync web source and restart
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude 'node_modules/' \
+            --exclude '.next/' \
+            ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/src/kolink-chat-frontend/"
+          ssh "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "bash /home/ubuntu/src/kolink-chat-backend/deploy/sync-and-restart.sh web"
