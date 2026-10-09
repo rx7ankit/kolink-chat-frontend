@@ -172,6 +172,18 @@ export function ChatBubble({
           ) : (
             <MessageContent message={message} isEmail={isEmail && message.from === "contact"} />
           )}
+          {message.from === "bot" && message.quickReplies && message.quickReplies.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {message.quickReplies.map((item) => (
+                <span
+                  key={item.payload}
+                  className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600"
+                >
+                  {item.title}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
         {onLike ? (
           <CommentLikeButton liked={Boolean(message.liked)} pending={liking} onToggle={() => void toggleLike()} />

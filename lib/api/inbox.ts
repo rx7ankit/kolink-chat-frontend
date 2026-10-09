@@ -44,6 +44,7 @@ export type ApiMessage = {
   html_body?: string | null;
   gmail_category?: string | null;
   liked?: boolean;
+  quick_replies?: { title: string; payload: string }[];
 };
 
 export type ApiConversation = {
@@ -57,6 +58,9 @@ export type ApiConversation = {
   preview: string;
   unread_count: number;
   automations_paused: boolean;
+  bot_owner?: "bot" | "human";
+  needs_attention?: boolean;
+  attention_note?: string | null;
   labels: ApiLabel[];
   contact: ApiContact;
   messages: ApiMessage[];
@@ -257,6 +261,9 @@ export function toInboxThread(
     assignedToUserId: row.assigned_to_user_id,
     labels: row.labels.map((label) => label.name),
     paused: row.automations_paused,
+    botOwner: row.bot_owner ?? "bot",
+    needsAttention: Boolean(row.needs_attention),
+    attentionNote: row.attention_note ?? null,
     updatedAt: row.updated_at,
     messages: row.messages.map((message) => ({
       id: message.id,
@@ -276,6 +283,7 @@ export function toInboxThread(
       htmlBody: message.html_body ?? undefined,
       gmailCategory: message.gmail_category ?? undefined,
       liked: Boolean(message.liked),
+      quickReplies: message.quick_replies,
     })),
     contact: toUiContact(row.contact),
     subject: row.subject ?? undefined,

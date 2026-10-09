@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ChannelBadge, channelMeta } from "@/components/channel-badge";
+import { CampaignDialog } from "@/components/contacts/campaign-dialog";
 import { ContactAvatar } from "@/components/inbox/contact-avatar";
 import { PageHeader } from "@/components/page-header";
 import { TablePagination } from "@/components/table-pagination";
@@ -80,6 +81,7 @@ export default function ContactsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [campaignOpen, setCampaignOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newContact, setNewContact] = useState({
     name: "",
@@ -300,6 +302,14 @@ export default function ContactsPage() {
           description={`${total} ${t("contacts.inView")}`}
           actions={
             <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                disabled={!selected.length || !rows.some((row) => selected.includes(row.id) && (row.channel === "instagram" || row.channel === "messenger"))}
+                onClick={() => setCampaignOpen(true)}
+              >
+                <MessageSquare className="mr-1.5 h-4 w-4" />
+                Message
+              </Button>
               <Button variant="outline" disabled={!selected.length} onClick={() => openTag(selected)}>
                 Tag
               </Button>
@@ -597,6 +607,11 @@ export default function ContactsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <CampaignDialog
+        open={campaignOpen}
+        onOpenChange={setCampaignOpen}
+        contacts={rows.filter((row) => selected.includes(row.id))}
+      />
     </div>
   );
 }

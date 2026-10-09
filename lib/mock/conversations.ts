@@ -13,6 +13,7 @@ export type ChatMessage = {
   htmlBody?: string;
   gmailCategory?: string;
   liked?: boolean;
+  quickReplies?: { title: string; payload: string }[];
 };
 
 export type Conversation = {
@@ -26,6 +27,9 @@ export type Conversation = {
   assignedTo: string | null;
   labels: string[];
   paused: boolean;
+  botOwner?: "bot" | "human";
+  needsAttention?: boolean;
+  attentionNote?: string | null;
   updatedAt: string;
   messages: ChatMessage[];
   subject?: string;
@@ -150,7 +154,7 @@ export const conversations: Conversation[] = [
 
 export const inboxFolders = [
   { id: "all", name: "All chats" },
-  { id: "comments", name: "Comments" },
+  { id: "attention", name: "Needs attention" },
   { id: "unassigned", name: "Unassigned" },
   { id: "mine", name: "Assigned to me" },
   { id: "reminders", name: "Reminders" },

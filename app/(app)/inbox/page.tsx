@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AlarmClock,
+  Bot,
   Check,
   ChevronLeft,
   Inbox,
@@ -25,10 +26,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AttentionBell } from "@/components/inbox/attention-bell";
 import { ChatBubble } from "@/components/inbox/chat-bubble";
 import { ContactAvatar } from "@/components/inbox/contact-avatar";
 import { ContactProfileSheet } from "@/components/inbox/contact-profile-sheet";
 import { EmailThread } from "@/components/inbox/email-thread";
+import { SetupBotDialog } from "@/components/inbox/setup-bot-dialog";
 import { messagePreview } from "@/components/inbox/message-content";
 import { ChannelBadge, ChannelIcon, channelMeta } from "@/components/channel-badge";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +74,7 @@ import {
   type CannedResponse,
   type InboxThread,
 } from "@/lib/api/inbox";
+import { getAttentionSummary, getInboxBot, markThreadDone, resumeBot, stopBot, type InboxBotMode } from "@/lib/api/inbox-bot";
 import { listChannels, syncChannel } from "@/lib/api/channels";
 import { listTeam, type TeamMember } from "@/lib/api/team";
 import { useInboxNotifications } from "@/lib/hooks/use-inbox-notifications";
@@ -98,7 +102,7 @@ import { cn, formatClock, formatRelativeTime } from "@/lib/utils";
 
 const folderIcons: Record<string, LucideIcon> = {
   all: Inbox,
-  comments: MessageSquare,
+  attention: Megaphone,
   unassigned: UserRoundX,
   mine: UserCheck,
   reminders: AlarmClock,
@@ -117,10 +121,10 @@ type PendingMedia = {
 const channelFilters: { id: "all" | ChannelId; label: string }[] = [
   { id: "all", label: "All" },
   { id: "instagram", label: channelMeta.instagram.label },
+  { id: "messenger", label: channelMeta.messenger.label },
   { id: "whatsapp", label: channelMeta.whatsapp.label },
   { id: "linkedin", label: channelMeta.linkedin.label },
   { id: "email", label: channelMeta.email.label },
-  { id: "messenger", label: channelMeta.messenger.label },
   { id: "facebook", label: channelMeta.facebook.label },
   { id: "threads", label: channelMeta.threads.label },
   { id: "x", label: channelMeta.x.label },
@@ -223,6 +227,9 @@ export default function InboxPage() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [setupBotOpen, setSetupBotOpen] = useState(false);
+  const [botMode, setBotMode] = useState<InboxBotMode>("off");
+  const [attentionCounts, setAttentionCounts] = useState({ instagram: 0, messenger: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const listRequestRef = useRef(0);
@@ -610,33 +617,26 @@ export default function InboxPage() {
     return Object.fromEntries(labels.map((item) => [item.name, item]));
   }, [labels]);
 
-  const isCommentsView = folder === "comments";
+  const isCommentsView = false;
+  const isBotChannel = channel === "instagram" || channel === "messenger";
   const isEmailView = channel === "email";
-  const searchPlaceholder = isCommentsView ? t("inbox.searchComments") : isEmailView ? "Search mail" : t("inbox.search");
-  const replyPlaceholder = isCommentsView ? t("inbox.commentPlaceholder") : t("inbox.placeholder");
+  const searchPlaceholder = isEmailView ? "Search mail" : t("inbox.search");
+  const replyPlaceholder = t("inbox.placeholder");
   const emptyStateText =
-    channel === "facebook" && folder === "all"
+    channel === "facebook"
       ? "Facebook Page DMs appear under Messenger. Comments on posts you published from Broadcasts are on that broadcast."
-      : channel === "threads" && folder === "all"
-        ? "Threads private messages are not available via Meta's API yet. Replies on posts you published from Broadcasts are on that broadcast. Mentions stay in Comments."
-        : channel === "threads"
-          ? "No Threads mentions yet. Replies on posts you published from Broadcasts are on that broadcast."
-          : channel === "x" && folder === "comments"
-            ? "No X mentions yet. Sync after someone mentions you or replies to a post."
-            : channel === "x"
-              ? "No X DMs yet. Mentions appear in Comments. DMs need dm.read access on your X app."
-              : channel === "linkedin" && folder === "comments"
-                ? "No LinkedIn comments yet. Stay on Comments, tap Sync comments & chat. LinkedIn only lets apps read Company Page comments — not comments on a personal profile post."
+      : channel === "threads"
+        ? "Threads private messages are not available via Meta's API yet. Replies on posts you published from Broadcasts are on that broadcast."
+          : channel === "x"
+              ? "No X DMs yet. Mentions and replies on posts you published from Broadcasts stay on that broadcast."
               : channel === "linkedin"
-                ? "LinkedIn comments are in the Comments folder, not All chats. Personal DMs are not available."
+                ? "LinkedIn Company Page comments stay on Broadcasts. Personal DMs are not available."
               : channel === "email"
                 ? emailTab === "promotions"
                   ? "Promotions are hidden from Primary. Nothing in Promotions yet — tap Sync after connecting Gmail."
                   : "Primary inbox is empty. Promotions stay hidden until you tap Promotions. Connect Gmail in Channels, then tap Sync."
-          : channel === "messenger" && folder === "comments"
-        ? "Messenger chats appear under All chats, not Comments."
-        : isCommentsView
-          ? t("inbox.noComments")
+          : folder === "attention"
+            ? "Nothing needs a human right now."
           : "No conversations in this view";
 
   function selectChannel(next: "all" | ChannelId) {
@@ -646,9 +646,7 @@ export default function InboxPage() {
     if (next === "email") {
       setEmailTab("primary");
       setFolder("all");
-    } else if (next === "facebook" || next === "threads" || next === "linkedin") {
-      setFolder("comments");
-    } else if (next === "messenger" || next === "whatsapp") {
+    } else if (folder === "comments") {
       setFolder("all");
     }
   }
@@ -662,10 +660,42 @@ export default function InboxPage() {
   }
 
   useEffect(() => {
-    if ((channel === "threads" || channel === "linkedin" || channel === "facebook") && folder === "all") {
-      setFolder("comments");
+    if (!isBotChannel) {
+      setBotMode("off");
+      return;
     }
-  }, [channel, folder]);
+    let cancelled = false;
+    void getInboxBot(channel)
+      .then((row) => {
+        if (!cancelled) setBotMode(row.mode);
+      })
+      .catch(() => {
+        if (!cancelled) setBotMode("off");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isBotChannel, channel]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getAttentionSummary()
+      .then((row) => {
+        if (!cancelled) setAttentionCounts(row);
+      })
+      .catch(() => undefined);
+    const timer = window.setInterval(() => {
+      void getAttentionSummary()
+        .then((row) => {
+          if (!cancelled) setAttentionCounts(row);
+        })
+        .catch(() => undefined);
+    }, 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
   const filtered = useMemo(() => {
     const visible = threads.filter((thread) => !isPlaceholderLinkedInComment(thread));
     if (channel === "email" && emailTab === "promotions") {
@@ -1045,6 +1075,29 @@ export default function InboxPage() {
     }
   }
 
+  async function toggleThreadBot() {
+    if (!active) return;
+    try {
+      const row = active.botOwner === "human" ? await resumeBot(active.id) : await stopBot(active.id);
+      const mapped = toInboxThread(row, user?.id, members);
+      patchThreadMeta(active.id, mapped);
+      toast.success(mapped.botOwner === "human" ? "Bot stopped on this thread" : "Bot resumed on this thread");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.detail : "Could not update bot");
+    }
+  }
+
+  async function clearAttention() {
+    if (!active) return;
+    try {
+      const row = await markThreadDone(active.id);
+      const mapped = toInboxThread(row, user?.id, members);
+      patchThreadMeta(active.id, mapped);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.detail : "Could not mark done");
+    }
+  }
+
   function navButtonClass(active: boolean) {
     return cn(
       "flex items-center overflow-hidden rounded-xl text-sm transition",
@@ -1300,6 +1353,30 @@ export default function InboxPage() {
             ) : listRefreshing ? (
               <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">Updating…</span>
             ) : null}
+            {isBotChannel ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0 gap-1.5 px-2.5 text-xs"
+                onClick={() => setSetupBotOpen(true)}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Setup bot</span>
+              </Button>
+            ) : null}
+            <AttentionBell
+              currentUserId={user?.id}
+              members={members}
+              onOpenThread={(id, nextChannel) => {
+                if (nextChannel === "instagram" || nextChannel === "messenger") {
+                  setChannel(nextChannel);
+                }
+                setFolder("attention");
+                setActiveId(id);
+                setMobileChat(true);
+              }}
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -1359,8 +1436,12 @@ export default function InboxPage() {
                   {item.id === "all" ? (
                     <Inbox className="h-3.5 w-3.5" />
                   ) : (
-                    <span className={cn(activeChip && "brightness-0 invert")}>
+                    <span className={cn("relative", activeChip && "brightness-0 invert")}>
                       <ChannelIcon channel={item.id} size={14} />
+                      {(item.id === "instagram" && attentionCounts.instagram > 0) ||
+                      (item.id === "messenger" && attentionCounts.messenger > 0) ? (
+                        <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-red-500 brightness-100 invert-0" />
+                      ) : null}
                     </span>
                   )}
                 </button>
@@ -1445,7 +1526,10 @@ export default function InboxPage() {
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className={cn("truncate text-sm", thread.unread > 0 ? "font-semibold text-slate-900" : "font-medium")}>
+                  <p className={cn("flex min-w-0 items-center gap-1.5 truncate text-sm", thread.unread > 0 ? "font-semibold text-slate-900" : "font-medium")}>
+                    {thread.needsAttention || (thread.botOwner === "human" && thread.unread > 0) ? (
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="Needs attention" />
+                    ) : null}
                     {linkedinContactName(person?.name, thread.channel)}
                   </p>
                   <span className="text-[11px] text-muted-foreground">
@@ -1468,12 +1552,15 @@ export default function InboxPage() {
                       Promo
                     </Badge>
                   ) : null}
-                  {thread.threadKind === "comment" && (
-                    <Badge variant="outline" className="gap-1 text-[10px]">
-                      <MessageSquare className="h-3 w-3" />
-                      Comment
+                  {thread.needsAttention ? (
+                    <Badge variant="outline" className="gap-1 text-[10px] text-red-600">
+                      Needs attention
                     </Badge>
-                  )}
+                  ) : thread.botOwner === "human" ? (
+                    <Badge variant="outline" className="gap-1 text-[10px]">
+                      Human
+                    </Badge>
+                  ) : null}
                   {thread.labels.map((name) => {
                     const meta = labelByName[name];
                     return (
@@ -1602,6 +1689,11 @@ export default function InboxPage() {
               className="flex-1 overflow-y-auto bg-gradient-to-b from-white/40 to-sky-50/40 px-3 py-4 sm:px-5"
             >
               <div className="mx-auto max-w-2xl space-y-2">
+                {active.attentionNote ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 whitespace-pre-wrap">
+                    {active.attentionNote}
+                  </div>
+                ) : null}
                 {activeLoading && active.messages.length === 0 ? (
                   <div className="space-y-3 py-2">
                     {Array.from({ length: 4 }).map((_, index) => (
@@ -1699,6 +1791,11 @@ export default function InboxPage() {
                     <Pause className="h-3 w-3" /> Automations paused
                   </Badge>
                 )}
+                {isBotChannel && botMode !== "off" && active.botOwner === "human" ? (
+                  <Badge variant="outline" className="gap-1 text-red-600">
+                    Human on this thread
+                  </Badge>
+                ) : null}
               </div>
               {pendingMedia ? (
                 <div className="mb-2 flex items-center gap-3 rounded-2xl border border-white/50 bg-white/70 px-3 py-2">
@@ -1750,6 +1847,25 @@ export default function InboxPage() {
                         {emoji}
                       </button>
                     ))}
+                  </div>
+                ) : null}
+                {isBotChannel && botMode !== "off" ? (
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      {active.botOwner === "human"
+                        ? "Bot is off for this contact. Everyone else still hits the channel bot."
+                        : `${botMode === "agentic" ? "Agentic" : "Menu"} bot is live on ${channel === "instagram" ? "Instagram" : "Messenger"}.`}
+                    </p>
+                    <div className="flex shrink-0 gap-1.5">
+                      {active.needsAttention ? (
+                        <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => void clearAttention()}>
+                          Mark done
+                        </Button>
+                      ) : null}
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => void toggleThreadBot()}>
+                        {active.botOwner === "human" ? "Resume bot" : "Stop bot for this thread"}
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
                 <div className="flex items-end gap-2 rounded-full border border-white/60 bg-white/80 px-2 py-1.5 shadow-sm">
@@ -1820,6 +1936,19 @@ export default function InboxPage() {
             : undefined
         }
       />
+
+      {isBotChannel ? (
+        <SetupBotDialog
+          open={setupBotOpen}
+          onOpenChange={(next) => {
+            setSetupBotOpen(next);
+            if (!next && (channel === "instagram" || channel === "messenger")) {
+              void getInboxBot(channel).then((row) => setBotMode(row.mode)).catch(() => undefined);
+            }
+          }}
+          channel={channel}
+        />
+      ) : null}
 
       <Dialog open={createLabelOpen} onOpenChange={setCreateLabelOpen}>
         <DialogContent className="sm:max-w-md">
