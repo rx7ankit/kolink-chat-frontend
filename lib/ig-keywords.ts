@@ -4,6 +4,7 @@ export const MIN_KEYWORDS = 5;
 export const MAX_KEYWORDS = 20;
 export const MAX_KEYWORD_LENGTH = 50;
 export const MAX_VARIATIONS = 5;
+export const SUBSTRING_MIN_LENGTH = 3;
 
 const INVISIBLE = new Set(["\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\ufe0e", "\ufe0f"]);
 const DROPPED = /[\p{Z}\p{P}\p{C}]/u;
@@ -24,7 +25,12 @@ export function matchKeyword(comment: string, keywords: string[]): string | null
   if (!haystack) return null;
   for (const keyword of keywords) {
     const needle = normalizeKeyword(keyword);
-    if (needle && haystack.includes(needle)) return keyword;
+    if (!needle) continue;
+    if ([...needle].length < SUBSTRING_MIN_LENGTH) {
+      if (haystack === needle) return keyword;
+    } else if (haystack.includes(needle)) {
+      return keyword;
+    }
   }
   return null;
 }
@@ -42,6 +48,6 @@ export function keywordProblems(keywords: string[]): string[] {
 export function shortKeywords(keywords: string[]): string[] {
   return keywords.filter((keyword) => {
     const length = [...normalizeKeyword(keyword)].length;
-    return length > 0 && length <= 2;
+    return length > 0 && length < SUBSTRING_MIN_LENGTH;
   });
 }

@@ -83,11 +83,14 @@ export function KeywordInput({ value, onChange }: { value: string[]; onChange: (
       </div>
       <p className="text-xs text-muted-foreground">
         {value.length}/{MAX_KEYWORDS} · at least {MIN_KEYWORDS} variations (e.g. link, linkk, LINK, 🔗). Matching
-        ignores case, spaces, and punctuation, so “linkplease” still triggers “link”.
+        ignores case, spaces, and punctuation. Keywords of 3+ characters still match inside a comment
+        (“linkplease” triggers “link”). Shorter ones only match that exact comment, so “hi” will not fire on
+        “this” or “his”.
       </p>
       {short.length ? (
         <p className="text-xs text-amber-700">
-          Very short keywords ({short.join(", ")}) can match inside other words — e.g. “hi” matches “this”.
+          {short.map((word) => `“${word}”`).join(", ")} only match that exact comment, not inside other words.
+          Add extra variations if you want those too.
         </p>
       ) : null}
       <div className="space-y-1.5">

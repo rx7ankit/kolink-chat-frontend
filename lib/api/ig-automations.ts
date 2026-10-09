@@ -95,7 +95,7 @@ export type IgAutomationPatch = Partial<Omit<IgAutomationInput, "media_id">>;
 export const DEFAULT_CONFIG: IgAutomationConfig = {
   opener_text: "Thanks for commenting! Tap below and I'll send it over 👇",
   opener_button: "Send me the link",
-  follow_prompt: "Looks like you're not following yet 👀 Follow us, then tap below and I'll send it.",
+  follow_prompt: "Looks like you're not following yet 👀 Follow us, wait a second, then tap below and I'll send it.",
   follow_button: "I followed",
   response: { text: "", link_url: null, link_title: "Open link", media_url: null, media_type: null },
   greetings: [],

@@ -317,8 +317,8 @@ export default function IgAutomationDetailPage() {
                   <span>
                     <span className="block text-sm font-medium">Only send to followers</span>
                     <FieldHint>
-                      Non-followers get the message below. Tapping the button re-checks and sends your DM once they
-                      follow.
+                      After they tap, we check their Instagram user id with Graph. Not following → this prompt, not
+                      the reward. We only send the DM when Graph says they follow.
                     </FieldHint>
                   </span>
                   <Switch

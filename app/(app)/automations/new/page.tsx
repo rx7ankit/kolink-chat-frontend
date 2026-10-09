@@ -167,8 +167,9 @@ export default function NewIgAutomationPage() {
               <div>
                 <h2 className="font-semibold">Only send to followers</h2>
                 <FieldHint>
-                  Commenters who don’t follow you get the message below first. After they follow and tap the button,
-                  they receive your DM. People who never commented are never messaged.
+                  After they tap the first DM button, we look up their Instagram user id and check whether they follow
+                  you. If they tapped without following, they get the message below — not your reward. We check again
+                  on every later tap. People who never commented are never messaged.
                 </FieldHint>
               </div>
               <Switch checked={followRequired} onCheckedChange={setFollowRequired} />

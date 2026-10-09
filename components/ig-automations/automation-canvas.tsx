@@ -229,7 +229,11 @@ export function AutomationCanvas({
             icon: <UserCheck className="h-3.5 w-3.5" />,
             accent: "#F59E0B",
             extraSource: true,
-            body: <p className="text-xs text-muted-foreground">Checked when they tap the DM button</p>,
+            body: (
+              <p className="text-xs text-muted-foreground">
+                Checked from their user id after they tap. No follow → no reward.
+              </p>
+            ),
           },
         },
         {
