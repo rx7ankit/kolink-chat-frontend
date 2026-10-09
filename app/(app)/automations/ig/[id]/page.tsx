@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/api/client";
 import {
+  EMPTY_RESPONSE,
   deleteIgAutomation,
   getIgAutomation,
   isReel,
@@ -35,6 +36,7 @@ import {
   type IgAutomationConfig,
   type IgRun,
 } from "@/lib/api/ig-automations";
+import { KIND_LABELS, isAutomationKind, minKeywordsFor, platformLabel } from "@/lib/comment-automations";
 import { keywordProblems } from "@/lib/ig-keywords";
 
 const BLOCK_TITLES: Record<CanvasBlock, string> = {
@@ -43,6 +45,7 @@ const BLOCK_TITLES: Record<CanvasBlock, string> = {
   follow: "Follow check",
   reply: "Reply to comment",
   dm: "DM response",
+  delete: "Delete comment",
 };
 
 const RUN_STATES: Record<string, { label: string; variant: "mint" | "sky" | "peach" | "rose" | "muted" }> = {
@@ -52,15 +55,23 @@ const RUN_STATES: Record<string, { label: string; variant: "mint" | "sky" | "pea
   delivered: { label: "Delivered", variant: "mint" },
   skipped: { label: "Skipped", variant: "muted" },
   failed: { label: "Failed", variant: "rose" },
+  deleted: { label: "Deleted", variant: "rose" },
 };
 
 function problemsFor(draft: IgAutomation): string[] {
-  const problems = [...keywordProblems(draft.keywords), ...responseProblems(draft.config.response)];
-  if (draft.comment_reply_enabled && !draft.config.comment_replies.some((reply) => reply.trim())) {
-    problems.push("Add at least one comment reply, or turn comment replies off");
+  const kind = isAutomationKind(draft.kind) ? draft.kind : "keyword_dm";
+  const problems = [...keywordProblems(draft.keywords, minKeywordsFor(kind))];
+  if (kind === "keyword_dm") {
+    problems.push(...responseProblems(draft.config.response));
+    if (draft.comment_reply_enabled && !draft.config.comment_replies.some((reply) => reply.trim())) {
+      problems.push("Add at least one comment reply, or turn comment replies off");
+    }
+    if (draft.follow_required && (!draft.config.follow_prompt.trim() || !draft.config.follow_button.trim())) {
+      problems.push("Fill in the follow message and button");
+    }
   }
-  if (draft.follow_required && (!draft.config.follow_prompt.trim() || !draft.config.follow_button.trim())) {
-    problems.push("Fill in the follow message and button");
+  if (kind === "keyword_reply" && !draft.config.comment_replies.some((reply) => reply.trim())) {
+    problems.push("Add at least one comment reply");
   }
   return problems;
 }
@@ -123,7 +134,9 @@ export default function IgAutomationDetailPage() {
           ...draft.config,
           greetings: draft.config.greetings.filter((item) => item.trim()),
           comment_replies: draft.config.comment_replies.filter((item) => item.trim()),
-          response: { ...draft.config.response, link_url: draft.config.response.link_url?.trim() || null },
+          response: draft.config.response
+            ? { ...draft.config.response, link_url: draft.config.response.link_url?.trim() || null }
+            : null,
         },
       });
       setSaved(row);
@@ -177,7 +190,8 @@ export default function IgAutomationDetailPage() {
               <Link href="/automations" className="hover:text-foreground">
                 Automations
               </Link>{" "}
-              / {isReel(draft) ? "Reel" : "Post"}
+              / {platformLabel(draft.platform || "instagram")} /{" "}
+              {KIND_LABELS[isAutomationKind(draft.kind) ? draft.kind : "keyword_dm"]}
             </p>
             <h1 className="truncate text-base font-semibold">{draft.name}</h1>
           </div>
@@ -298,7 +312,7 @@ export default function IgAutomationDetailPage() {
                 {draft.permalink ? (
                   <Button variant="outline" asChild>
                     <a href={draft.permalink} target="_blank" rel="noreferrer">
-                      Open on Instagram <ExternalLink className="ml-1 h-4 w-4" />
+                      Open on {platformLabel(draft.platform || "instagram")} <ExternalLink className="ml-1 h-4 w-4" />
                     </a>
                   </Button>
                 ) : null}
@@ -309,7 +323,14 @@ export default function IgAutomationDetailPage() {
               <KeywordInput
                 value={draft.keywords}
                 onChange={(keywords) => setDraft({ ...draft, keywords })}
+                minCount={minKeywordsFor(isAutomationKind(draft.kind) ? draft.kind : "keyword_dm")}
               />
+            ) : null}
+
+            {open === "delete" ? (
+              <p className="text-sm text-muted-foreground">
+                Matching comments are deleted from this post. Edit the trigger keywords to change what gets removed.
+              </p>
             ) : null}
 
             {open === "follow" ? (
@@ -358,12 +379,14 @@ export default function IgAutomationDetailPage() {
                     <span className="block text-sm font-medium">Reply publicly to each matching comment</span>
                     <FieldHint>One variation is picked at random.</FieldHint>
                   </span>
-                  <Switch
-                    checked={draft.comment_reply_enabled}
-                    onCheckedChange={(comment_reply_enabled) => setDraft({ ...draft, comment_reply_enabled })}
-                  />
+                  {(draft.kind || "keyword_dm") === "keyword_dm" ? (
+                    <Switch
+                      checked={draft.comment_reply_enabled}
+                      onCheckedChange={(comment_reply_enabled) => setDraft({ ...draft, comment_reply_enabled })}
+                    />
+                  ) : null}
                 </label>
-                {draft.comment_reply_enabled ? (
+                {draft.comment_reply_enabled || draft.kind === "keyword_reply" ? (
                   <VariationsInput
                     value={draft.config.comment_replies}
                     onChange={(comment_replies) => patchConfig({ comment_replies })}
@@ -376,7 +399,7 @@ export default function IgAutomationDetailPage() {
 
             {open === "dm" ? (
               <div className="space-y-6">
-                {draft.follow_required || draft.config.response.media_url ? (
+                {draft.follow_required || draft.config.response?.media_url ? (
                   <div className="space-y-2">
                     <Label>First DM (private reply with a button)</Label>
                     <Textarea
@@ -396,7 +419,7 @@ export default function IgAutomationDetailPage() {
                 <div className="space-y-2">
                   <Label>What they receive</Label>
                   <ResponseEditor
-                    value={draft.config.response}
+                    value={draft.config.response ?? EMPTY_RESPONSE}
                     onChange={(response) => patchConfig({ response })}
                   />
                 </div>

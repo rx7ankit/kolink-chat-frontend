@@ -19,13 +19,14 @@ import {
 import { ApiError } from "@/lib/api/client";
 import type { ChannelId } from "@/lib/mock";
 
-type PlatformTab = "all" | "whatsapp" | "instagram" | "facebook";
+type PlatformTab = "all" | "whatsapp" | "instagram" | "facebook" | "threads";
 
 const TABS: { value: PlatformTab; label: string }[] = [
   { value: "all", label: "All" },
   { value: "whatsapp", label: "WhatsApp" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
+  { value: "threads", label: "Threads" },
 ];
 
 /** Messenger recipes belong to the Facebook platform tab. */
@@ -33,11 +34,18 @@ const TAB_CHANNELS: Record<Exclude<PlatformTab, "all">, string[]> = {
   whatsapp: ["whatsapp"],
   instagram: ["instagram"],
   facebook: ["facebook", "messenger"],
+  threads: ["threads"],
 };
 
 /** Templates that open a guided setup instead of a blank flow. */
 const SETUP_FLOWS: Record<string, string> = {
-  "comment-keyword-to-dm": "/automations/new",
+  "comment-keyword-to-dm": "/automations/new?platform=instagram&kind=keyword_dm",
+  "ig-comment-keyword-reply": "/automations/new?platform=instagram&kind=keyword_reply",
+  "ig-comment-keyword-delete": "/automations/new?platform=instagram&kind=keyword_delete",
+  "fb-comment-keyword-reply": "/automations/new?platform=facebook&kind=keyword_reply",
+  "fb-comment-keyword-delete": "/automations/new?platform=facebook&kind=keyword_delete",
+  "th-comment-keyword-reply": "/automations/new?platform=threads&kind=keyword_reply",
+  "th-comment-keyword-delete": "/automations/new?platform=threads&kind=keyword_delete",
 };
 
 function MessageTemplatesCard() {

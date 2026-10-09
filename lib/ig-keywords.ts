@@ -35,9 +35,9 @@ export function matchKeyword(comment: string, keywords: string[]): string | null
   return null;
 }
 
-export function keywordProblems(keywords: string[]): string[] {
+export function keywordProblems(keywords: string[], minCount = MIN_KEYWORDS): string[] {
   const problems: string[] = [];
-  if (keywords.length < MIN_KEYWORDS) problems.push(`Add at least ${MIN_KEYWORDS} keyword variations`);
+  if (keywords.length < minCount) problems.push(`Add at least ${minCount} keyword variations`);
   if (keywords.length > MAX_KEYWORDS) problems.push(`Use at most ${MAX_KEYWORDS} keyword variations`);
   if (keywords.some((keyword) => !normalizeKeyword(keyword))) {
     problems.push("Keywords need at least one letter, number, or emoji");

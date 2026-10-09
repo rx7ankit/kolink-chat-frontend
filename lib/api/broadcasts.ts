@@ -33,6 +33,7 @@ export type ApiBroadcast = {
   clicked: number;
   origin?: "kolink" | "imported";
   ig_automation_id?: string | null;
+  comment_automations?: { id: string; kind: string; platform: string }[];
   created_at: string;
   updated_at: string;
 };
@@ -94,6 +95,7 @@ export function toUiBroadcast(row: ApiBroadcast): Broadcast {
     updatedAt: row.updated_at,
     origin: row.origin === "imported" ? "imported" : "kolink",
     igAutomationId: row.ig_automation_id || null,
+    commentAutomations: row.comment_automations || [],
   };
 }
 
@@ -348,15 +350,17 @@ function joinNetworkNames(names: string[]) {
 
 export function broadcastAutomationHref(item: {
   igAutomationId?: string | null;
+  commentAutomations?: { id: string; kind: string; platform: string }[];
   channel?: string;
   platforms?: string[];
   platformStatuses?: Record<string, PlatformStatus | undefined>;
 }) {
-  if (item.igAutomationId) return `/automations/ig/${item.igAutomationId}`;
   const platform = (item.platforms?.[0] || item.channel || "").toLowerCase();
   const mediaId = item.platformStatuses?.[platform]?.external_id;
-  if (platform === "instagram" && mediaId) {
-    return `/automations/new?media=${encodeURIComponent(mediaId)}&from=broadcast`;
+  if (platform === "instagram" || platform === "facebook" || platform === "threads") {
+    const params = new URLSearchParams({ platform, from: "broadcast" });
+    if (mediaId) params.set("media", mediaId);
+    return `/automations/new?${params.toString()}`;
   }
   return "/automations?create=1";
 }

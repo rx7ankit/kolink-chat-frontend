@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Workflow } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlatformPreview } from "@/components/broadcasts/preview";
@@ -13,7 +13,8 @@ import { CollapsibleCaption } from "@/components/collapsible-caption";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { broadcastAutomationHref, deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveSocialBroadcast, liveDeleteCopy, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
+import { BroadcastAutomationsButton } from "@/components/ig-automations/broadcast-automations-button";
+import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveSocialBroadcast, liveDeleteCopy, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
 import { listChannels, type ApiChannel } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import type { Broadcast } from "@/lib/mock";
@@ -57,12 +58,7 @@ export default function BroadcastDetailPage() {
             <Button variant="outline" asChild>
               <Link href="/broadcasts">Back</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href={broadcastAutomationHref(item)}>
-                <Workflow className="mr-1 h-4 w-4" />
-                Automations
-              </Link>
-            </Button>
+            <BroadcastAutomationsButton item={item} />
             {canPublish ? (
               <Button variant="outline" asChild>
                 <Link href={`/broadcasts/${item.id}/edit`}>Edit</Link>

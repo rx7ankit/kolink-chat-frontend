@@ -13,7 +13,7 @@ export type IgAutomationConfig = {
   opener_button: string;
   follow_prompt: string;
   follow_button: string;
-  response: IgResponse;
+  response: IgResponse | null;
   greetings: string[];
   comment_replies: string[];
 };
@@ -26,11 +26,14 @@ export type IgAutomationStats = {
   waiting_follow: number;
   skipped: number;
   failed: number;
+  deleted?: number;
 };
 
 export type IgAutomation = {
   id: string;
   name: string;
+  platform?: "instagram" | "facebook" | "threads";
+  kind?: "keyword_dm" | "keyword_reply" | "keyword_delete";
   media_id: string;
   media_type: string | null;
   media_product_type: string | null;
@@ -61,6 +64,7 @@ export type IgMediaItem = {
   comments_count: number | null;
   preview_url: string | null;
   automation_id: string | null;
+  automation_ids?: Record<string, string>;
   broadcast_id: string | null;
 };
 
@@ -82,6 +86,8 @@ export type IgRun = {
 
 export type IgAutomationInput = {
   media_id: string;
+  platform?: "instagram" | "facebook" | "threads";
+  kind?: "keyword_dm" | "keyword_reply" | "keyword_delete";
   name?: string | null;
   keywords: string[];
   follow_required: boolean;
@@ -92,33 +98,53 @@ export type IgAutomationInput = {
 
 export type IgAutomationPatch = Partial<Omit<IgAutomationInput, "media_id">>;
 
+export const EMPTY_RESPONSE: IgResponse = {
+  text: "",
+  link_url: null,
+  link_title: "Open link",
+  media_url: null,
+  media_type: null,
+};
+
 export const DEFAULT_CONFIG: IgAutomationConfig = {
   opener_text: "Thanks for commenting! Tap below and I'll send it over 👇",
   opener_button: "Send me the link",
   follow_prompt: "Looks like you're not following yet 👀 Follow us, wait a second, then tap below and I'll send it.",
   follow_button: "I followed",
-  response: { text: "", link_url: null, link_title: "Open link", media_url: null, media_type: null },
+  response: EMPTY_RESPONSE,
   greetings: [],
   comment_replies: ["Thanks for commenting! Just sent you a DM 📩"],
 };
 
 const BASE = "/ig-automations";
 
-export function listIgAutomations() {
-  return api<IgAutomation[]>(workspacePath(BASE));
+export function listIgAutomations(platform?: string) {
+  const query = platform ? `?platform=${encodeURIComponent(platform)}` : "";
+  return api<IgAutomation[]>(workspacePath(`${BASE}${query}`));
 }
 
 export function getIgAutomation(id: string) {
   return api<IgAutomation>(workspacePath(`${BASE}/${id}`));
 }
 
-export function listIgMedia(after?: string | null) {
-  const query = after ? `?after=${encodeURIComponent(after)}` : "";
-  return api<IgMediaPage>(workspacePath(`${BASE}/media${query}`));
+export function listIgMedia(
+  after?: string | null,
+  opts?: { platform?: string; kind?: string },
+) {
+  const query = new URLSearchParams();
+  if (after) query.set("after", after);
+  if (opts?.platform) query.set("platform", opts.platform);
+  if (opts?.kind) query.set("kind", opts.kind);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return api<IgMediaPage>(workspacePath(`${BASE}/media${suffix}`));
 }
 
-export function getIgMedia(mediaId: string) {
-  return api<IgMediaItem>(workspacePath(`${BASE}/media/${encodeURIComponent(mediaId)}`));
+export function getIgMedia(mediaId: string, opts?: { platform?: string; kind?: string }) {
+  const query = new URLSearchParams();
+  if (opts?.platform) query.set("platform", opts.platform);
+  if (opts?.kind) query.set("kind", opts.kind);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return api<IgMediaItem>(workspacePath(`${BASE}/media/${encodeURIComponent(mediaId)}${suffix}`));
 }
 
 export function createIgAutomation(data: IgAutomationInput) {

@@ -11,6 +11,7 @@ import { PostThumb } from "@/components/ig-automations/post-thumb";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,16 @@ import {
   type IgAutomation,
   type IgMediaItem,
 } from "@/lib/api/ig-automations";
+import {
+  AUTOMATION_PLATFORMS,
+  KIND_BADGE,
+  KIND_LABELS,
+  isAutomationKind,
+  isAutomationPlatform,
+  newAutomationHref,
+  platformLabel,
+  type AutomationPlatform,
+} from "@/lib/comment-automations";
 import { useI18n } from "@/lib/i18n/provider";
 
 function postedLabel(row: IgAutomation) {
@@ -61,6 +72,8 @@ function AutomationsPageInner() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tabParam = searchParams.get("platform");
+  const tab: AutomationPlatform = isAutomationPlatform(tabParam) ? tabParam : "instagram";
   const [rows, setRows] = useState<IgAutomation[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicating, setDuplicating] = useState<IgAutomation | null>(null);
@@ -68,17 +81,20 @@ function AutomationsPageInner() {
   const [deleting, setDeleting] = useState<IgAutomation | null>(null);
   const [promptCreate, setPromptCreate] = useState(false);
   const [busy, setBusy] = useState(false);
+  const createHref = newAutomationHref({ platform: tab });
 
   useEffect(() => {
     setPromptCreate(searchParams.get("create") === "1");
   }, [searchParams]);
 
   useEffect(() => {
-    void listIgAutomations()
+    setLoading(true);
+    setRows([]);
+    void listIgAutomations(tab)
       .then(setRows)
       .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load automations"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [tab]);
 
   async function toggle(row: IgAutomation, enabled: boolean) {
     setRows((current) => current.map((item) => (item.id === row.id ? { ...item, enabled } : item)));
@@ -126,15 +142,31 @@ function AutomationsPageInner() {
     <div className="page-shell">
       <PageHeader
         title={t("automations.title")}
-        description="Instagram comment automations, newest post first"
+        description={`${platformLabel(tab)} comment automations, newest post first`}
         actions={
           <Button asChild>
-            <Link href="/automations/new">
+            <Link href={createHref}>
               <Plus className="mr-1 h-4 w-4" /> New automation
             </Link>
           </Button>
         }
       />
+
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          if (isAutomationPlatform(value)) router.replace(`/automations?platform=${value}`);
+        }}
+        className="mb-4"
+      >
+        <TabsList>
+          {AUTOMATION_PLATFORMS.map((item) => (
+            <TabsTrigger key={item.value} value={item.value}>
+              {item.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {loading ? (
         <div className="flex justify-center py-16 text-muted-foreground">
@@ -144,11 +176,11 @@ function AutomationsPageInner() {
         <div className="glass flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
           <p className="font-medium">No automations yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
-            Pick a post or reel, choose trigger keywords, and koLink replies to the comment and DMs each commenter
-            what you promised.
+            Pick a post, choose trigger keywords, and koLink can reply, DM, or delete matching comments on{" "}
+            {platformLabel(tab)}.
           </p>
           <Button asChild>
-            <Link href="/automations/new">Set up your first automation</Link>
+            <Link href={createHref}>Set up your first automation</Link>
           </Button>
         </div>
       ) : (
@@ -173,8 +205,11 @@ function AutomationsPageInner() {
                         <p className="line-clamp-1 font-medium hover:text-primary">{row.name}</p>
                         <p className="text-xs text-muted-foreground">{postedLabel(row)}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge variant={KIND_BADGE[isAutomationKind(row.kind) ? row.kind : "keyword_dm"]}>
+                            {KIND_LABELS[isAutomationKind(row.kind) ? row.kind : "keyword_dm"]}
+                          </Badge>
                           <Badge variant="rose">{isReel(row) ? "Reel" : "Post"}</Badge>
-                          {row.follow_required ? (
+                          {(row.kind || "keyword_dm") === "keyword_dm" && row.follow_required ? (
                             <Badge variant="sky" className="gap-1">
                               <UserCheck className="h-3 w-3" /> Followers only
                             </Badge>
@@ -198,8 +233,23 @@ function AutomationsPageInner() {
                   </td>
                   <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
                     <p>
-                      <span className="font-medium text-foreground">{row.stats.matched}</span> matched ·{" "}
-                      <span className="font-medium text-foreground">{row.stats.delivered}</span> delivered
+                      <span className="font-medium text-foreground">{row.stats.matched}</span> matched
+                      {row.kind === "keyword_delete" ? (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground">{row.stats.deleted ?? 0}</span> deleted
+                        </>
+                      ) : row.kind === "keyword_reply" ? (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground">{row.stats.comment_replies}</span> replies
+                        </>
+                      ) : (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground">{row.stats.delivered}</span> delivered
+                        </>
+                      )}
                     </p>
                     {row.stats.waiting_follow ? <p>{row.stats.waiting_follow} waiting to follow</p> : null}
                     {row.stats.failed ? <p className="text-destructive">{row.stats.failed} failed</p> : null}
@@ -268,6 +318,8 @@ function AutomationsPageInner() {
                 selectedId={duplicateMedia?.id ?? null}
                 onSelect={setDuplicateMedia}
                 disabledIds={[duplicating.media_id]}
+                platform={duplicating.platform || tab}
+                kind={duplicating.kind}
               />
             ) : null}
           </div>
@@ -278,23 +330,22 @@ function AutomationsPageInner() {
         open={promptCreate}
         onOpenChange={(open) => {
           setPromptCreate(open);
-          if (!open) router.replace("/automations");
+          if (!open) router.replace(`/automations?platform=${tab}`);
         }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create a comment automation</DialogTitle>
             <DialogDescription>
-              Instagram comment automations reply to matching comments and DM the commenter. Pick a post or reel, set
-              keywords, and follow the same setup as New automation.
+              Choose an automation type for {platformLabel(tab)}, pick a post, and set trigger keywords.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => router.replace("/automations")}>
+            <Button variant="outline" onClick={() => router.replace(`/automations?platform=${tab}`)}>
               Not now
             </Button>
             <Button asChild>
-              <Link href="/automations/new">Set up automation</Link>
+              <Link href={createHref}>Set up automation</Link>
             </Button>
           </div>
         </DialogContent>

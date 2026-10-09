@@ -21,11 +21,15 @@ export function PostPicker({
   selectedId,
   onSelect,
   disabledIds = [],
+  platform = "instagram",
+  kind,
 }: {
   selectedId: string | null;
   onSelect: (item: IgMediaItem) => void;
   /** Extra media ids to block (e.g. the source post when duplicating). */
   disabledIds?: string[];
+  platform?: "instagram" | "facebook" | "threads";
+  kind?: string;
 }) {
   const [items, setItems] = useState<IgMediaItem[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -33,15 +37,20 @@ export function PostPicker({
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
 
-  const fetchPage = useCallback((after: string | null) => {
-    return listIgMedia(after)
-      .then((page) => {
-        setItems((current) => (after ? [...current, ...page.items] : page.items));
-        setNext(page.next);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.detail : "Could not load your Instagram posts"))
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchPage = useCallback(
+    (after: string | null) => {
+      return listIgMedia(after, { platform, kind })
+        .then((page) => {
+          setItems((current) => (after ? [...current, ...page.items] : page.items));
+          setNext(page.next);
+        })
+        .catch((err) =>
+          setError(err instanceof ApiError ? err.detail : `Could not load your ${platform} posts`),
+        )
+        .finally(() => setLoading(false));
+    },
+    [platform, kind],
+  );
 
   function load(after: string | null) {
     setLoading(true);
@@ -50,6 +59,10 @@ export function PostPicker({
   }
 
   useEffect(() => {
+    setItems([]);
+    setNext(null);
+    setLoading(true);
+    setError(null);
     void fetchPage(null);
   }, [fetchPage]);
 
@@ -62,22 +75,30 @@ export function PostPicker({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-xl border bg-white/60 p-1 text-sm">
-          {(["all", "reels", "posts"] as Filter[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setFilter(value)}
-              className={cn(
-                "rounded-lg px-3 py-1 capitalize transition",
-                filter === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {value}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">Stories and lives can’t have comment automations.</p>
+        {platform === "instagram" ? (
+          <div className="inline-flex rounded-xl border bg-white/60 p-1 text-sm">
+            {(["all", "reels", "posts"] as Filter[]).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilter(value)}
+                className={cn(
+                  "rounded-lg px-3 py-1 capitalize transition",
+                  filter === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm font-medium capitalize">{platform} posts</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {platform === "instagram"
+            ? "Stories and lives can’t have comment automations."
+            : "Posts that already have this automation type are greyed out."}
+        </p>
       </div>
 
       {error ? (
@@ -118,7 +139,7 @@ export function PostPicker({
                 </div>
               </div>
               <div className="absolute left-2 top-2 flex flex-col gap-1">
-                {item.automation_id ? <Badge variant="muted">Has automation</Badge> : null}
+                {item.automation_id ? <Badge variant="muted">Already set up</Badge> : null}
                 {item.broadcast_id ? (
                   <Badge variant="sky" className="gap-1">
                     <Radio className="h-3 w-3" /> koLink
@@ -142,7 +163,7 @@ export function PostPicker({
       ) : null}
       {!loading && !error && !visible.length ? (
         <p className="glass rounded-2xl p-6 text-sm text-muted-foreground">
-          No {filter === "all" ? "posts or reels" : filter} found on this Instagram account yet.
+          No {platform === "instagram" && filter !== "all" ? filter : "posts"} found on this account yet.
         </p>
       ) : null}
       {next && !loading ? (

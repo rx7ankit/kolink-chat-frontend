@@ -22,7 +22,15 @@ import {
 } from "@/lib/ig-keywords";
 import { cn } from "@/lib/utils";
 
-export function KeywordInput({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
+export function KeywordInput({
+  value,
+  onChange,
+  minCount = MIN_KEYWORDS,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  minCount?: number;
+}) {
   const [draft, setDraft] = useState("");
   const [sample, setSample] = useState("");
   const full = value.length >= MAX_KEYWORDS;
@@ -82,7 +90,7 @@ export function KeywordInput({ value, onChange }: { value: string[]; onChange: (
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        {value.length}/{MAX_KEYWORDS} · at least {MIN_KEYWORDS} variations (e.g. link, linkk, LINK, 🔗). Matching
+        {value.length}/{MAX_KEYWORDS} · at least {minCount} variations (e.g. link, linkk, LINK, 🔗). Matching
         ignores case, spaces, and punctuation. Keywords of 3+ characters still match inside a comment
         (“linkplease” triggers “link”). Shorter ones only match that exact comment, so “hi” will not fire on
         “this” or “his”.
@@ -286,8 +294,12 @@ export function ResponseEditor({ value, onChange }: { value: IgResponse; onChang
   );
 }
 
-export function responseProblems(value: IgResponse): string[] {
+export function responseProblems(value: IgResponse | null | undefined): string[] {
   const problems: string[] = [];
+  if (!value) {
+    problems.push("Add a message, a link, or media to send");
+    return problems;
+  }
   if (!value.text.trim() && !value.link_url && !value.media_url) {
     problems.push("Add a message, a link, or media to send");
   }

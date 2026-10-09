@@ -16,13 +16,13 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { KeyRound, MessageCircle, MessageSquareReply, Send, UserCheck, UserPlus } from "lucide-react";
+import { KeyRound, MessageCircle, MessageSquareReply, Send, Trash2, UserCheck, UserPlus } from "lucide-react";
 
 import { PostThumb } from "@/components/ig-automations/post-thumb";
 import { isReel, type IgAutomation } from "@/lib/api/ig-automations";
 import { cn } from "@/lib/utils";
 
-export type CanvasBlock = "post" | "keywords" | "follow" | "reply" | "dm";
+export type CanvasBlock = "post" | "keywords" | "follow" | "reply" | "dm" | "delete";
 
 type BlockData = {
   block: CanvasBlock;
@@ -101,6 +101,7 @@ function chips(values: string[], max = 6) {
 
 function responseSummary(row: IgAutomation) {
   const { response, greetings } = row.config;
+  if (!response) return <p className="text-xs text-muted-foreground">No DM configured</p>;
   return (
     <div className="space-y-1.5">
       {response.media_url ? (
@@ -128,8 +129,9 @@ export function AutomationCanvas({
 }) {
   const { nodes, edges } = useMemo(() => {
     const row = automation;
-    const follow = row.follow_required;
-    const needsOpener = follow || Boolean(row.config.response.media_url);
+    const kind = row.kind || "keyword_dm";
+    const follow = kind === "keyword_dm" && row.follow_required;
+    const needsOpener = follow || Boolean(row.config.response?.media_url);
     const list: Node<BlockData>[] = [
       {
         id: "post",
@@ -161,10 +163,42 @@ export function AutomationCanvas({
           body: chips(row.keywords),
         },
       },
-      {
+    ];
+    const edgeList: Edge[] = [{ id: "post-keywords", source: "post", target: "keywords" }];
+
+    if (kind === "keyword_delete") {
+      list.push({
+        id: "delete",
+        type: "block",
+        position: { x: 660, y: 140 },
+        data: {
+          block: "delete",
+          title: "Delete comment",
+          icon: <Trash2 className="h-3.5 w-3.5" />,
+          accent: "#E11D48",
+          source: false,
+          body: <p className="text-xs text-muted-foreground">Matching comments are removed from the post.</p>,
+        },
+      });
+      edgeList.push({ id: "keywords-delete", source: "keywords", target: "delete", label: "Delete" });
+      return {
+        nodes: list,
+        edges: edgeList.map((edge) => ({
+          ...edge,
+          type: "smoothstep",
+          animated: automation.enabled,
+          markerEnd: { type: MarkerType.ArrowClosed },
+          labelBgPadding: [6, 3] as [number, number],
+          labelBgBorderRadius: 6,
+          labelStyle: { fontSize: 11, fontWeight: 500 },
+        })),
+      };
+    }
+
+    list.push({
         id: "reply",
         type: "block",
-        position: { x: 660, y: -40 },
+        position: { x: 660, y: kind === "keyword_reply" ? 140 : -40 },
         data: {
           block: "reply",
           title: "Reply to comment",
@@ -183,12 +217,23 @@ export function AutomationCanvas({
             <p className="text-xs text-muted-foreground">Off — tap to turn on</p>
           ),
         },
-      },
-    ];
-    const edgeList: Edge[] = [
-      { id: "post-keywords", source: "post", target: "keywords" },
-      { id: "keywords-reply", source: "keywords", target: "reply", label: "Public reply" },
-    ];
+      });
+    edgeList.push({ id: "keywords-reply", source: "keywords", target: "reply", label: "Public reply" });
+
+    if (kind === "keyword_reply") {
+      return {
+        nodes: list,
+        edges: edgeList.map((edge) => ({
+          ...edge,
+          type: "smoothstep",
+          animated: automation.enabled,
+          markerEnd: { type: MarkerType.ArrowClosed },
+          labelBgPadding: [6, 3] as [number, number],
+          labelBgBorderRadius: 6,
+          labelStyle: { fontSize: 11, fontWeight: 500 },
+        })),
+      };
+    }
 
     const dmX = follow ? 1000 : 660;
     list.push({
