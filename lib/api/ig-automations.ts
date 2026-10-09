@@ -117,6 +117,10 @@ export function listIgMedia(after?: string | null) {
   return api<IgMediaPage>(workspacePath(`${BASE}/media${query}`));
 }
 
+export function getIgMedia(mediaId: string) {
+  return api<IgMediaItem>(workspacePath(`${BASE}/media/${encodeURIComponent(mediaId)}`));
+}
+
 export function createIgAutomation(data: IgAutomationInput) {
   return api<IgAutomation>(workspacePath(BASE), { method: "POST", body: data });
 }

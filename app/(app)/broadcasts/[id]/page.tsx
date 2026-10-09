@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 
 import { PlatformPreview } from "@/components/broadcasts/preview";
@@ -12,7 +12,7 @@ import { PlatformStatusList } from "@/components/broadcasts/platform-status";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveSocialBroadcast, liveDeleteCopy, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
+import { broadcastAutomationHref, deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveSocialBroadcast, liveDeleteCopy, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
 import { listChannels, type ApiChannel } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import type { Broadcast } from "@/lib/mock";
@@ -55,6 +55,12 @@ export default function BroadcastDetailPage() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
               <Link href="/broadcasts">Back</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={broadcastAutomationHref(item)}>
+                <Workflow className="mr-1 h-4 w-4" />
+                Automations
+              </Link>
             </Button>
             {canPublish ? (
               <Button variant="outline" asChild>
@@ -116,6 +122,7 @@ export default function BroadcastDetailPage() {
               <Badge variant={overallBadgeVariant(item.status)}>{statusLabel(item.status)}</Badge>
               <Badge variant="outline">{statusLabel(item.postMode)}</Badge>
               {item.postMode === "social_post" ? <Badge variant="muted">{item.postType}</Badge> : <Badge variant="muted">{item.audience}</Badge>}
+              {item.origin === "imported" ? <Badge variant="muted">Imported</Badge> : null}
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Platform results</p>

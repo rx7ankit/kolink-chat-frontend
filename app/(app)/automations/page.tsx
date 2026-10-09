@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Copy, Loader2, MoreHorizontal, Plus, Trash2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,14 +50,28 @@ function postedLabel(row: IgAutomation) {
 }
 
 export default function AutomationsPage() {
+  return (
+    <Suspense fallback={<p className="page-shell text-sm text-muted-foreground">Loading…</p>}>
+      <AutomationsPageInner />
+    </Suspense>
+  );
+}
+
+function AutomationsPageInner() {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<IgAutomation[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicating, setDuplicating] = useState<IgAutomation | null>(null);
   const [duplicateMedia, setDuplicateMedia] = useState<IgMediaItem | null>(null);
   const [deleting, setDeleting] = useState<IgAutomation | null>(null);
+  const [promptCreate, setPromptCreate] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setPromptCreate(searchParams.get("create") === "1");
+  }, [searchParams]);
 
   useEffect(() => {
     void listIgAutomations()
@@ -251,6 +265,32 @@ export default function AutomationsPage() {
             <Button disabled={!duplicateMedia || busy} onClick={() => void confirmDuplicate()}>
               {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
               Duplicate
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={promptCreate}
+        onOpenChange={(open) => {
+          setPromptCreate(open);
+          if (!open) router.replace("/automations");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a comment automation</DialogTitle>
+            <DialogDescription>
+              Instagram comment automations reply to matching comments and DM the commenter. Pick a post or reel, set
+              keywords, and follow the same setup as New automation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => router.replace("/automations")}>
+              Not now
+            </Button>
+            <Button asChild>
+              <Link href="/automations/new">Set up automation</Link>
             </Button>
           </div>
         </DialogContent>

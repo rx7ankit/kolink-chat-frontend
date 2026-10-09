@@ -22,6 +22,7 @@ export type PlatformStatus = {
   simulated?: boolean;
   container_id?: string | null;
   liked?: boolean;
+  origin?: string | null;
 };
 
 export const PUBLISH_PLATFORMS: {

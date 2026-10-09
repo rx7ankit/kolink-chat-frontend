@@ -22,6 +22,8 @@ export type Broadcast = {
   at: string;
   createdAt?: string;
   updatedAt?: string;
+  origin?: "kolink" | "imported";
+  igAutomationId?: string | null;
 };
 
 export const broadcasts: Broadcast[] = [];

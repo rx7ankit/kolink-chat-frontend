@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { ImportPostDialog } from "@/components/broadcasts/import-post-dialog";
 import { BroadcastListPreview, listingPlatform } from "@/components/broadcasts/list-preview";
 import { PlatformStatusList } from "@/components/broadcasts/platform-status";
 import { ChannelBadge } from "@/components/channel-badge";
@@ -43,6 +44,7 @@ import {
   liveDeleteCopy,
   listBroadcasts,
   toUiBroadcast,
+  type ImportablePlatform,
 } from "@/lib/api/broadcasts";
 import { ApiError } from "@/lib/api/client";
 import { useI18n } from "@/lib/i18n/provider";
@@ -51,6 +53,10 @@ import { PUBLISH_PLATFORMS, asChannelId, overallBadgeVariant, statusLabel, type 
 import { formatRelativeTime } from "@/lib/utils";
 
 type BroadcastTab = "all" | "unpublished" | PublishPlatformId;
+
+function isImportableTab(tab: BroadcastTab): tab is ImportablePlatform {
+  return tab === "instagram" || tab === "facebook" || tab === "threads";
+}
 
 const TABS: { id: BroadcastTab; label: string }[] = [
   { id: "all", label: "All" },
@@ -94,6 +100,7 @@ function BroadcastsPageInner() {
   const [rows, setRows] = useState<Broadcast[]>([]);
   const [tab, setTab] = useState<BroadcastTab>("all");
   const [pendingDelete, setPendingDelete] = useState<Broadcast | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const liveRows = useMemo(() => rows.filter((row) => !isUnpublishedListing(row)), [rows]);
@@ -109,6 +116,7 @@ function BroadcastsPageInner() {
 
   useEffect(() => {
     pager.setPage(1);
+    setImportOpen(false);
   }, [tab, pager.setPage]);
 
   const counts = useMemo(() => {
@@ -154,9 +162,16 @@ function BroadcastsPageInner() {
         title={t("broadcasts.title")}
         description="Compose once, then each network is its own listing. Unpublished posts leave All and the network tabs."
         actions={
-          <Button asChild>
-            <Link href="/broadcasts/new">New broadcast</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {isImportableTab(tab) ? (
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                Import post
+              </Button>
+            ) : null}
+            <Button asChild>
+              <Link href="/broadcasts/new">New broadcast</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -201,7 +216,14 @@ function BroadcastsPageInner() {
                     <Link href={`/broadcasts/${item.id}`} className="flex items-center gap-3">
                       <BroadcastListPreview item={item} />
                       <span className="min-w-0">
-                        <span className="block font-medium">{item.name}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="block font-medium">{item.name}</span>
+                          {item.origin === "imported" ? (
+                            <Badge variant="muted" className="shrink-0">
+                              Imported
+                            </Badge>
+                          ) : null}
+                        </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {item.body || "No caption"} · {formatRelativeTime(item.at)}
                         </span>
@@ -273,6 +295,15 @@ function BroadcastsPageInner() {
           onPageChange={pager.setPage}
         />
       </div>
+
+      {isImportableTab(tab) ? (
+        <ImportPostDialog
+          open={importOpen}
+          platform={tab}
+          onOpenChange={setImportOpen}
+          onImported={() => void reload()}
+        />
+      ) : null}
 
       <Dialog open={!!pendingDelete} onOpenChange={() => !busy && setPendingDelete(null)}>
         <DialogContent>

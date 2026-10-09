@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ import { ApiError } from "@/lib/api/client";
 import {
   DEFAULT_CONFIG,
   createIgAutomation,
+  getIgMedia,
   isReel,
   type IgAutomationConfig,
   type IgMediaItem,
@@ -36,7 +37,17 @@ import { cn } from "@/lib/utils";
 const STEPS = ["Post", "Keywords", "Follow check", "DM response", "Comment reply", "Review"] as const;
 
 export default function NewIgAutomationPage() {
+  return (
+    <Suspense fallback={<p className="page-shell text-sm text-muted-foreground">Loading…</p>}>
+      <NewIgAutomationPageInner />
+    </Suspense>
+  );
+}
+
+function NewIgAutomationPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const presetMediaId = searchParams.get("media");
   const [step, setStep] = useState(0);
   const [media, setMedia] = useState<IgMediaItem | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -44,6 +55,20 @@ export default function NewIgAutomationPage() {
   const [commentReplyEnabled, setCommentReplyEnabled] = useState(true);
   const [config, setConfig] = useState<IgAutomationConfig>(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!presetMediaId) return;
+    void getIgMedia(presetMediaId)
+      .then((item) => {
+        if (item.automation_id) {
+          toast.message("This post already has an automation");
+          router.replace(`/automations/ig/${item.automation_id}`);
+          return;
+        }
+        setMedia(item);
+      })
+      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Could not load that post"));
+  }, [presetMediaId, router]);
 
   const problems = useMemo(() => {
     switch (step) {

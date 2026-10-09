@@ -31,9 +31,29 @@ export type ApiBroadcast = {
   sent: number;
   delivered: number;
   clicked: number;
+  origin?: "kolink" | "imported";
+  ig_automation_id?: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type ImportablePost = {
+  id: string;
+  caption: string | null;
+  permalink: string | null;
+  thumbnail_url: string | null;
+  posted_at: string | null;
+  media_type: string | null;
+  post_type: string;
+};
+
+export type ImportablePostPage = {
+  items: ImportablePost[];
+  next: string | null;
+  platform: string;
+};
+
+export type ImportablePlatform = "instagram" | "facebook" | "threads";
 
 export type BroadcastPayload = {
   name: string;
@@ -72,7 +92,22 @@ export function toUiBroadcast(row: ApiBroadcast): Broadcast {
     at: row.schedule_at ?? row.updated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    origin: row.origin === "imported" ? "imported" : "kolink",
+    igAutomationId: row.ig_automation_id || null,
   };
+}
+
+export function listImportablePosts(platform: ImportablePlatform, after?: string | null) {
+  const query = new URLSearchParams({ platform });
+  if (after) query.set("after", after);
+  return api<ImportablePostPage>(workspacePath(`/broadcasts/importable?${query.toString()}`));
+}
+
+export function importNativePost(platform: ImportablePlatform, externalId: string) {
+  return api<ApiBroadcast>(workspacePath("/broadcasts/import"), {
+    method: "POST",
+    body: { platform, external_id: externalId },
+  });
 }
 
 export async function listBroadcasts() {
@@ -309,6 +344,21 @@ function joinNetworkNames(names: string[]) {
   if (names.length <= 1) return names[0] || "this network";
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+export function broadcastAutomationHref(item: {
+  igAutomationId?: string | null;
+  channel?: string;
+  platforms?: string[];
+  platformStatuses?: Record<string, PlatformStatus | undefined>;
+}) {
+  if (item.igAutomationId) return `/automations/ig/${item.igAutomationId}`;
+  const platform = (item.platforms?.[0] || item.channel || "").toLowerCase();
+  const mediaId = item.platformStatuses?.[platform]?.external_id;
+  if (platform === "instagram" && mediaId) {
+    return `/automations/new?media=${encodeURIComponent(mediaId)}`;
+  }
+  return "/automations?create=1";
 }
 
 export function liveDeleteCopy(item: { name?: string; platforms?: string[]; channel?: string; status?: string; postMode?: string; platformStatuses?: Record<string, PlatformStatus | undefined> }) {
