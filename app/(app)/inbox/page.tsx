@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlarmClock,
   Bot,
@@ -31,7 +32,6 @@ import { ChatBubble } from "@/components/inbox/chat-bubble";
 import { ContactAvatar } from "@/components/inbox/contact-avatar";
 import { ContactProfileSheet } from "@/components/inbox/contact-profile-sheet";
 import { EmailThread } from "@/components/inbox/email-thread";
-import { SetupBotDialog } from "@/components/inbox/setup-bot-dialog";
 import { messagePreview } from "@/components/inbox/message-content";
 import { ChannelBadge, ChannelIcon, channelMeta } from "@/components/channel-badge";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +74,7 @@ import {
   type CannedResponse,
   type InboxThread,
 } from "@/lib/api/inbox";
-import { getAttentionSummary, getInboxBot, markThreadDone, resumeBot, stopBot, type InboxBotMode } from "@/lib/api/inbox-bot";
+import { getAttentionSummary, getInboxBot, markThreadDone, parseBotChannel, resumeBot, stopBot, type InboxBotMode } from "@/lib/api/inbox-bot";
 import { listChannels, syncChannel } from "@/lib/api/channels";
 import { listTeam, type TeamMember } from "@/lib/api/team";
 import { useInboxNotifications } from "@/lib/hooks/use-inbox-notifications";
@@ -198,6 +198,7 @@ function NavLabel({
 export default function InboxPage() {
   const { t } = useI18n();
   const { user, workspace } = useAuth();
+  const router = useRouter();
   const [threads, setThreads] = useState<InboxThread[]>([]);
   const [labels, setLabels] = useState<InboxLabel[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -227,7 +228,6 @@ export default function InboxPage() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [setupBotOpen, setSetupBotOpen] = useState(false);
   const [botMode, setBotMode] = useState<InboxBotMode>("off");
   const [attentionCounts, setAttentionCounts] = useState({ instagram: 0, messenger: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -619,6 +619,7 @@ export default function InboxPage() {
 
   const isCommentsView = false;
   const isBotChannel = channel === "instagram" || channel === "messenger";
+  const botSetupChannel = parseBotChannel(channel === "all" ? null : channel);
   const isEmailView = channel === "email";
   const searchPlaceholder = isEmailView ? "Search mail" : t("inbox.search");
   const replyPlaceholder = t("inbox.placeholder");
@@ -660,12 +661,12 @@ export default function InboxPage() {
   }
 
   useEffect(() => {
-    if (!isBotChannel) {
+    if (!botSetupChannel) {
       setBotMode("off");
       return;
     }
     let cancelled = false;
-    void getInboxBot(channel)
+    void getInboxBot(botSetupChannel)
       .then((row) => {
         if (!cancelled) setBotMode(row.mode);
       })
@@ -675,7 +676,7 @@ export default function InboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [isBotChannel, channel]);
+  }, [botSetupChannel]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1353,18 +1354,6 @@ export default function InboxPage() {
             ) : listRefreshing ? (
               <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">Updating…</span>
             ) : null}
-            {isBotChannel ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 shrink-0 gap-1.5 px-2.5 text-xs"
-                onClick={() => setSetupBotOpen(true)}
-              >
-                <Bot className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Setup bot</span>
-              </Button>
-            ) : null}
             <AttentionBell
               currentUserId={user?.id}
               members={members}
@@ -1382,16 +1371,13 @@ export default function InboxPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="h-9 shrink-0 gap-1.5 px-2.5 text-xs"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
                   disabled={syncing || loading}
                   onClick={() => void syncInbox()}
                   aria-label={t("inbox.sync")}
                 >
                   <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
-                  <span className="hidden sm:inline">
-                    {syncing ? t("inbox.syncing") : t("inbox.sync")}
-                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">{t("inbox.syncHint")}</TooltipContent>
@@ -1417,7 +1403,8 @@ export default function InboxPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex items-center gap-1.5">
+            <div className="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {channelFilters.map((item) => {
               const activeChip = channel === item.id;
               const chip = (
@@ -1454,7 +1441,21 @@ export default function InboxPage() {
                 </Tooltip>
               );
             })}
+            </div>
+            {botSetupChannel ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 gap-1.5 px-2.5 text-xs"
+                onClick={() => router.push(`/inbox/bot/${botSetupChannel}`)}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Setup bot</span>
+              </Button>
+            ) : null}
           </div>
+          {isEmailView ? (
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100/80 p-1">
               <button
                 type="button"
@@ -1488,6 +1489,7 @@ export default function InboxPage() {
                 ) : null}
               </button>
             </div>
+          ) : null}
         </div>
         <ScrollArea className={cn("min-h-0 min-w-0 flex-1 overflow-x-hidden transition-opacity", listRefreshing && "opacity-80")}>
           {loading && filtered.length === 0 ? (
@@ -1936,19 +1938,6 @@ export default function InboxPage() {
             : undefined
         }
       />
-
-      {isBotChannel ? (
-        <SetupBotDialog
-          open={setupBotOpen}
-          onOpenChange={(next) => {
-            setSetupBotOpen(next);
-            if (!next && (channel === "instagram" || channel === "messenger")) {
-              void getInboxBot(channel).then((row) => setBotMode(row.mode)).catch(() => undefined);
-            }
-          }}
-          channel={channel}
-        />
-      ) : null}
 
       <Dialog open={createLabelOpen} onOpenChange={setCreateLabelOpen}>
         <DialogContent className="sm:max-w-md">

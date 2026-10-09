@@ -3,13 +3,33 @@ import { API_URL } from "./url";
 import type { ApiConversation, Page } from "./inbox";
 
 export type InboxBotMode = "off" | "menu" | "agentic";
+export type BotChannel = "instagram" | "messenger";
+export type InboxBotItemLayout = "carousel" | "stack" | "text_list" | "";
+export type InboxBotButtonAction =
+  | "text"
+  | "media"
+  | "card"
+  | "carousel"
+  | "list"
+  | "prices"
+  | "escalate"
+  | "submenu";
+
+export type InboxBotItem = {
+  title: string;
+  subtitle?: string;
+  price?: string;
+  media_url?: string | null;
+};
 
 export type InboxBotButton = {
   id: string;
   label: string;
-  action: "text" | "media" | "card" | "escalate" | "submenu";
+  action: InboxBotButtonAction;
   text: string;
   media_url?: string | null;
+  layout?: InboxBotItemLayout;
+  items?: InboxBotItem[];
   children: InboxBotButton[];
 };
 
@@ -79,23 +99,33 @@ export type InboxCampaign = {
   failed: number;
 };
 
-export function getInboxBot(channel: "instagram" | "messenger") {
+export function parseBotChannel(value: string | undefined | null): BotChannel | null {
+  if (value === "instagram" || value === "messenger") return value;
+  if (value === "facebook") return "messenger";
+  return null;
+}
+
+export function botChannelLabel(channel: BotChannel) {
+  return channel === "instagram" ? "Instagram" : "Messenger";
+}
+
+export function getInboxBot(channel: BotChannel) {
   return api<InboxBotConfig>(workspacePath(`/inbox/bot/${channel}`));
 }
 
 export function saveInboxBot(
-  channel: "instagram" | "messenger",
+  channel: BotChannel,
   data: { mode: InboxBotMode; menu?: InboxBotConfig["menu"]; agentic?: InboxBotConfig["agentic"] },
 ) {
   return api<InboxBotConfig>(workspacePath(`/inbox/bot/${channel}`), { method: "PUT", body: data });
 }
 
-export function listInboxKnowledge(channel: "instagram" | "messenger") {
+export function listInboxKnowledge(channel: BotChannel) {
   return api<InboxKnowledgeDoc[]>(workspacePath(`/inbox/bot/${channel}/knowledge`));
 }
 
 export function addInboxKnowledge(
-  channel: "instagram" | "messenger",
+  channel: BotChannel,
   data: { kind: string; title: string; content: string; rows?: Record<string, unknown>[] },
 ) {
   return api<InboxKnowledgeDoc>(workspacePath(`/inbox/bot/${channel}/knowledge`), {
@@ -105,7 +135,7 @@ export function addInboxKnowledge(
 }
 
 export async function uploadInboxKnowledge(
-  channel: "instagram" | "messenger",
+  channel: BotChannel,
   file: File,
   kind: string,
   title: string,
@@ -126,12 +156,12 @@ export async function uploadInboxKnowledge(
   return (await response.json()) as InboxKnowledgeDoc;
 }
 
-export function deleteInboxKnowledge(channel: "instagram" | "messenger", id: string) {
+export function deleteInboxKnowledge(channel: BotChannel, id: string) {
   return api<{ detail: string }>(workspacePath(`/inbox/bot/${channel}/knowledge/${id}`), { method: "DELETE" });
 }
 
 export function playgroundInboxBot(
-  channel: "instagram" | "messenger",
+  channel: BotChannel,
   data: { message: string; history?: { role: string; text: string }[] },
 ) {
   return api<{ reply: string; escalated: boolean; reason: string; quick_replies: { title: string; payload: string }[] }>(
@@ -160,7 +190,7 @@ export function markThreadDone(conversationId: string) {
   return api<ApiConversation>(workspacePath(`/conversations/${conversationId}/mark-done`), { method: "POST" });
 }
 
-export function previewCampaign(channel: "instagram" | "messenger", contactIds: string[]) {
+export function previewCampaign(channel: BotChannel, contactIds: string[]) {
   return api<CampaignPreview[]>(workspacePath("/inbox/campaigns/preview"), {
     method: "POST",
     body: { channel, contact_ids: contactIds },
@@ -168,7 +198,7 @@ export function previewCampaign(channel: "instagram" | "messenger", contactIds: 
 }
 
 export function createCampaign(data: {
-  channel: "instagram" | "messenger";
+  channel: BotChannel;
   contact_ids: string[];
   body: string;
   media_url?: string;
