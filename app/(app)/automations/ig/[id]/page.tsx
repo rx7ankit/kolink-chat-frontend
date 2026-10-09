@@ -14,6 +14,7 @@ import {
   VariationsInput,
   responseProblems,
 } from "@/components/ig-automations/fields";
+import { CollapsibleCaption } from "@/components/collapsible-caption";
 import { PostThumb } from "@/components/ig-automations/post-thumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -287,7 +288,7 @@ export default function IgAutomationDetailPage() {
             {open === "post" ? (
               <div className="space-y-3">
                 <PostThumb src={draft.thumbnail_url} reel={isReel(draft)} className="aspect-square w-full" />
-                <p className="text-sm">{draft.caption || "No caption"}</p>
+                <CollapsibleCaption text={draft.caption || "No caption"} className="text-sm" />
                 <div className="flex flex-wrap gap-2">
                   {draft.from_broadcast ? <Badge variant="muted">Published from koLink Broadcasts</Badge> : null}
                   {draft.posted_at ? (

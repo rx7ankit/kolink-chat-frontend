@@ -96,14 +96,27 @@ export function ImportPostDialog({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !busy && onOpenChange(value)}>
-      <DialogContent className="max-h-[90svh] max-w-4xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Import a {label} post</DialogTitle>
-          <DialogDescription>
-            Posts already listed in Broadcasts are hidden. Importing does not republish — it just adds the native post
-            so you can manage comments and automations here.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[90svh] max-w-4xl flex-col overflow-hidden p-0">
+        <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-6 pb-3 pt-6 pr-14">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle>Import a {label} post</DialogTitle>
+            <DialogDescription>
+              Posts already listed in Broadcasts are hidden. Importing does not republish — it just adds the native post
+              so you can manage comments and automations here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button disabled={!selected || busy} onClick={() => void importSelected()}>
+              {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Import post
+            </Button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-6">
 
         {error ? (
           <div className="rounded-2xl border bg-white/70 p-4 text-sm text-destructive">
@@ -141,9 +154,9 @@ export function ImportPostDialog({
                   reel={item.post_type === "reel"}
                   className="aspect-square w-full rounded-none"
                 />
-                <div className="space-y-1 p-2.5">
-                  <p className="line-clamp-2 min-h-[2.5rem] text-xs">{item.caption || "No caption"}</p>
-                  <p className="text-[11px] text-muted-foreground">{formatDate(item.posted_at)}</p>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 pb-2 pt-8">
+                  <p className="line-clamp-1 text-[11px] font-medium text-white">{item.caption || "No caption"}</p>
+                  <p className="mt-0.5 text-[10px] text-white/80">{formatDate(item.posted_at)}</p>
                 </div>
                 {isSelected ? (
                   <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
@@ -178,15 +191,6 @@ export function ImportPostDialog({
             </Button>
           </div>
         ) : null}
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Cancel
-          </Button>
-          <Button disabled={!selected || busy} onClick={() => void importSelected()}>
-            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
-            Import post
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -244,28 +244,32 @@ function AutomationsPageInner() {
           }
         }}
       >
-        <DialogContent className="max-h-[90svh] max-w-4xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Duplicate to another post</DialogTitle>
-            <DialogDescription>
-              Same keywords, follow check, and messages — pick the post or reel for the copy.
-            </DialogDescription>
-          </DialogHeader>
-          {duplicating ? (
-            <PostPicker
-              selectedId={duplicateMedia?.id ?? null}
-              onSelect={setDuplicateMedia}
-              disabledIds={[duplicating.media_id]}
-            />
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDuplicating(null)}>
-              Cancel
-            </Button>
-            <Button disabled={!duplicateMedia || busy} onClick={() => void confirmDuplicate()}>
-              {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
-              Duplicate
-            </Button>
+        <DialogContent className="flex max-h-[90svh] max-w-4xl flex-col overflow-hidden p-0">
+          <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-6 pb-3 pt-6 pr-14">
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle>Duplicate to another post</DialogTitle>
+              <DialogDescription>
+                Same keywords, follow check, and messages — pick the post or reel for the copy.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="outline" onClick={() => setDuplicating(null)}>
+                Cancel
+              </Button>
+              <Button disabled={!duplicateMedia || busy} onClick={() => void confirmDuplicate()}>
+                {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                Duplicate
+              </Button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+            {duplicating ? (
+              <PostPicker
+                selectedId={duplicateMedia?.id ?? null}
+                onSelect={setDuplicateMedia}
+                disabledIds={[duplicating.media_id]}
+              />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

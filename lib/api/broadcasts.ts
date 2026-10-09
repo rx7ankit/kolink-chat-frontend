@@ -356,7 +356,7 @@ export function broadcastAutomationHref(item: {
   const platform = (item.platforms?.[0] || item.channel || "").toLowerCase();
   const mediaId = item.platformStatuses?.[platform]?.external_id;
   if (platform === "instagram" && mediaId) {
-    return `/automations/new?media=${encodeURIComponent(mediaId)}`;
+    return `/automations/new?media=${encodeURIComponent(mediaId)}&from=broadcast`;
   }
   return "/automations?create=1";
 }

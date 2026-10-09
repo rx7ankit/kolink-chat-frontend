@@ -15,6 +15,7 @@ import {
   VariationsInput,
   responseProblems,
 } from "@/components/ig-automations/fields";
+import { CollapsibleCaption } from "@/components/collapsible-caption";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,8 @@ function NewIgAutomationPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetMediaId = searchParams.get("media");
-  const [step, setStep] = useState(0);
+  const fromBroadcast = searchParams.get("from") === "broadcast";
+  const [step, setStep] = useState(fromBroadcast && presetMediaId ? 1 : 0);
   const [media, setMedia] = useState<IgMediaItem | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [followRequired, setFollowRequired] = useState(true);
@@ -66,9 +68,13 @@ function NewIgAutomationPageInner() {
           return;
         }
         setMedia(item);
+        if (fromBroadcast) setStep(1);
       })
-      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Could not load that post"));
-  }, [presetMediaId, router]);
+      .catch((error) => {
+        if (fromBroadcast) setStep(0);
+        toast.error(error instanceof ApiError ? error.detail : "Could not load that post");
+      });
+  }, [presetMediaId, fromBroadcast, router]);
 
   const problems = useMemo(() => {
     switch (step) {
@@ -132,17 +138,35 @@ function NewIgAutomationPageInner() {
 
   return (
     <div className="page-shell max-w-5xl">
+      <div className="sticky top-0 z-20 -mx-1 mb-4 bg-white/80 px-1 pb-1 pt-1 backdrop-blur-md">
       <PageHeader
+        className="mb-3"
         title="Set up comment automation"
         description="When someone comments a keyword on your post, reply to the comment and DM them what you promised."
         actions={
-          <Button variant="outline" asChild>
-            <Link href="/templates">Cancel</Link>
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {problems.length ? <p className="max-w-[14rem] text-xs text-amber-700">{problems[0]}</p> : null}
+            <Button variant="outline" asChild>
+              <Link href="/templates">Cancel</Link>
+            </Button>
+            <Button variant="outline" disabled={step === 0 || saving} onClick={() => setStep((s) => s - 1)}>
+              <ArrowLeft className="mr-1 h-4 w-4" /> Back
+            </Button>
+            {step < STEPS.length - 1 ? (
+              <Button disabled={problems.length > 0} onClick={() => setStep((s) => s + 1)}>
+                Next <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button disabled={saving} onClick={() => void submit()}>
+                {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                Activate automation
+              </Button>
+            )}
+          </div>
         }
       />
 
-      <ol className="mb-6 flex flex-wrap gap-2">
+      <ol className="flex flex-wrap gap-2">
         {STEPS.map((label, index) => (
           <li key={label}>
             <button
@@ -164,6 +188,7 @@ function NewIgAutomationPageInner() {
           </li>
         ))}
       </ol>
+      </div>
 
       <div className="glass rounded-2xl p-5 sm:p-6">
         {step === 0 ? (
@@ -174,6 +199,21 @@ function NewIgAutomationPageInner() {
             </div>
             <PostPicker selectedId={media?.id ?? null} onSelect={setMedia} />
           </section>
+        ) : null}
+
+        {media && step > 0 && step < STEPS.length - 1 ? (
+          <button
+            type="button"
+            onClick={() => setStep(0)}
+            className="mb-5 flex w-full items-center gap-3 rounded-2xl border bg-white/60 p-2.5 text-left hover:bg-white/80"
+          >
+            <PostThumb src={media.preview_url} reel={isReel(media)} className="h-12 w-12" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Using this post</p>
+              <p className="line-clamp-1 text-sm font-medium">{media.caption || "No caption"}</p>
+            </div>
+            <span className="shrink-0 text-xs font-medium text-primary">Change</span>
+          </button>
         ) : null}
 
         {step === 1 ? (
@@ -302,7 +342,7 @@ function NewIgAutomationPageInner() {
               <PostThumb src={media.preview_url} reel={isReel(media)} className="h-24 w-24" />
               <div className="min-w-0 space-y-1 text-sm">
                 <Badge variant="rose">{isReel(media) ? "Reel" : "Post"}</Badge>
-                <p className="line-clamp-3">{media.caption || "No caption"}</p>
+                <CollapsibleCaption text={media.caption || "No caption"} lines={3} className="text-sm" />
               </div>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -331,25 +371,6 @@ function NewIgAutomationPageInner() {
             </FieldHint>
           </section>
         ) : null}
-      </div>
-
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <Button variant="outline" disabled={step === 0 || saving} onClick={() => setStep((s) => s - 1)}>
-          <ArrowLeft className="mr-1 h-4 w-4" /> Back
-        </Button>
-        <div className="flex items-center gap-3">
-          {problems.length ? <p className="text-xs text-amber-700">{problems[0]}</p> : null}
-          {step < STEPS.length - 1 ? (
-            <Button disabled={problems.length > 0} onClick={() => setStep((s) => s + 1)}>
-              Next <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button disabled={saving} onClick={() => void submit()}>
-              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
-              Activate automation
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -106,9 +106,9 @@ export function PostPicker({
               )}
             >
               <PostThumb src={item.preview_url} reel={isReel(item)} className="aspect-square w-full rounded-none" />
-              <div className="space-y-1 p-2.5">
-                <p className="line-clamp-2 min-h-[2.5rem] text-xs">{item.caption || "No caption"}</p>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 pb-2 pt-8">
+                <p className="line-clamp-1 text-[11px] font-medium text-white">{item.caption || "No caption"}</p>
+                <div className="mt-0.5 flex items-center justify-between text-[10px] text-white/80">
                   <span>{formatDate(item.timestamp)}</span>
                   {item.comments_count != null ? (
                     <span className="inline-flex items-center gap-0.5">

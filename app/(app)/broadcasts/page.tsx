@@ -213,11 +213,11 @@ function BroadcastsPageInner() {
               return (
                 <TableRow key={item.id} className={item.status === "deleted" ? "opacity-70" : undefined}>
                   <TableCell>
-                    <Link href={`/broadcasts/${item.id}`} className="flex items-center gap-3">
+                    <Link href={`/broadcasts/${item.id}`} className="flex min-w-0 max-w-xl items-center gap-3">
                       <BroadcastListPreview item={item} />
                       <span className="min-w-0">
-                        <span className="flex items-center gap-2">
-                          <span className="block font-medium">{item.name}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium">{item.name}</span>
                           {item.origin === "imported" ? (
                             <Badge variant="muted" className="shrink-0">
                               Imported

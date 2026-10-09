@@ -1,6 +1,7 @@
 "use client";
 
 import { ChannelIcon, channelMeta } from "@/components/channel-badge";
+import { CollapsibleCaption } from "@/components/collapsible-caption";
 import { asChannelId, detectMediaKind, type PostMode, type PostType, type PublishPlatformId } from "@/lib/publish";
 import { cn } from "@/lib/utils";
 
@@ -80,7 +81,7 @@ export function PlatformPreview({
             <p className="text-[10px] text-muted-foreground">Just now · Public</p>
           </div>
         </div>
-        <p className="px-3 pb-2 text-[13px] leading-snug">{caption}</p>
+        <CollapsibleCaption text={caption} className="px-3 pb-2 text-[13px] leading-snug" />
         <MediaBlock urls={mediaUrls} />
         <div className="flex justify-around border-t border-black/5 py-2 text-[11px] text-muted-foreground">
           <span>Like</span>
@@ -103,7 +104,7 @@ export function PlatformPreview({
             <p className="text-[10px] text-muted-foreground">threads.net</p>
           </div>
         </div>
-        <p className="px-3 pb-2 text-[13px] leading-snug">{caption}</p>
+        <CollapsibleCaption text={caption} className="px-3 pb-2 text-[13px] leading-snug" />
         {mediaUrls.length ? (
           <div className="px-3 pb-3">
             <div className="overflow-hidden rounded-xl border border-black/5">
@@ -132,7 +133,7 @@ export function PlatformPreview({
             <p className="text-xs font-semibold">
               {handle} <span className="font-normal text-muted-foreground">@{handle.toLowerCase().replace(/\s+/g, "")}</span>
             </p>
-            <p className="mt-1 text-[13px] leading-snug">{caption}</p>
+            <CollapsibleCaption text={caption} className="mt-1 text-[13px] leading-snug" />
             {mediaUrls[0] ? (
               <div className="mt-2 overflow-hidden rounded-xl">
                 <MediaBlock urls={mediaUrls.slice(0, 1)} tall={false} />
@@ -154,7 +155,7 @@ export function PlatformPreview({
           <div className="min-w-0">
             <p className="text-xs font-semibold">{handle}</p>
             <p className="text-[11px] text-muted-foreground">Personal or Company Page</p>
-            <p className="mt-2 text-[13px] leading-snug whitespace-pre-wrap">{caption}</p>
+            <CollapsibleCaption text={caption} className="mt-2 text-[13px] leading-snug" />
           </div>
         </div>
       </div>
@@ -179,10 +180,11 @@ export function PlatformPreview({
         </div>
       </div>
       <MediaBlock urls={mediaUrls} tall={story || postType === "reel"} />
-      <p className="line-clamp-4 px-3 py-2 text-[12px] leading-snug">
-        <span className="font-semibold">{handle} </span>
-        {caption}
-      </p>
+      <CollapsibleCaption
+        prefix={<span className="font-semibold">{handle} </span>}
+        text={caption}
+        className="px-3 py-2 text-[12px] leading-snug"
+      />
     </div>
   );
 }

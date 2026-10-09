@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { PlatformPreview } from "@/components/broadcasts/preview";
 import { BroadcastPostEngagement } from "@/components/broadcasts/post-engagement";
 import { PlatformStatusList } from "@/components/broadcasts/platform-status";
+import { CollapsibleCaption } from "@/components/collapsible-caption";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export default function BroadcastDetailPage() {
     <div className="page-shell mx-auto max-w-4xl">
       <PageHeader
         title={item.name}
-        description={item.body || "No caption"}
+        description={<CollapsibleCaption text={item.body || "No caption"} />}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
@@ -152,7 +153,7 @@ export default function BroadcastDetailPage() {
             onPreferred={(platform) => setPreview(platform)}
           />
           <section className="glass rounded-2xl p-5">
-            <p className="text-sm whitespace-pre-wrap">{item.body || "No caption"}</p>
+            <CollapsibleCaption text={item.body || "No caption"} className="text-sm" />
           </section>
         </div>
         <aside className="glass rounded-2xl p-5">
