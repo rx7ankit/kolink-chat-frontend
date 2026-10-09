@@ -30,6 +30,7 @@ import {
   deleteIgAutomation,
   getIgAutomation,
   isReel,
+  listIgAutomations,
   listIgRuns,
   updateIgAutomation,
   type IgAutomation,
@@ -37,7 +38,7 @@ import {
   type IgRun,
 } from "@/lib/api/ig-automations";
 import { KIND_LABELS, isAutomationKind, minKeywordsFor, platformLabel } from "@/lib/comment-automations";
-import { keywordProblems } from "@/lib/ig-keywords";
+import { keywordProblems, takenKeywordMap } from "@/lib/ig-keywords";
 
 const BLOCK_TITLES: Record<CanvasBlock, string> = {
   post: "Post",
@@ -58,9 +59,9 @@ const RUN_STATES: Record<string, { label: string; variant: "mint" | "sky" | "pea
   deleted: { label: "Deleted", variant: "rose" },
 };
 
-function problemsFor(draft: IgAutomation): string[] {
+function problemsFor(draft: IgAutomation, taken?: Map<string, string>): string[] {
   const kind = isAutomationKind(draft.kind) ? draft.kind : "keyword_dm";
-  const problems = [...keywordProblems(draft.keywords, minKeywordsFor(kind))];
+  const problems = [...keywordProblems(draft.keywords, minKeywordsFor(kind), taken)];
   if (kind === "keyword_dm") {
     problems.push(...responseProblems(draft.config.response));
     if (draft.comment_reply_enabled && !draft.config.comment_replies.some((reply) => reply.trim())) {
@@ -84,6 +85,7 @@ export default function IgAutomationDetailPage() {
   const [draft, setDraft] = useState<IgAutomation | null>(null);
   const [open, setOpen] = useState<CanvasBlock | null>(null);
   const [runs, setRuns] = useState<IgRun[]>([]);
+  const [siblings, setSiblings] = useState<IgAutomation[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -94,6 +96,12 @@ export default function IgAutomationDetailPage() {
       })
       .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Automation not found"));
   }, [id]);
+
+  useEffect(() => {
+    void listIgAutomations()
+      .then(setSiblings)
+      .catch(() => undefined);
+  }, []);
 
   const loadRuns = useCallback(() => {
     void listIgRuns(id)
@@ -112,7 +120,20 @@ export default function IgAutomationDetailPage() {
     return pick(saved) !== pick(draft);
   }, [saved, draft]);
 
-  const problems = draft ? problemsFor(draft) : [];
+  const taken = useMemo(() => {
+    if (!draft) return new Map<string, string>();
+    return takenKeywordMap(
+      siblings
+        .filter((row) => row.id !== draft.id && row.media_id === draft.media_id)
+        .map((row) => ({
+          keywords: row.keywords,
+          kind: row.kind || "keyword_dm",
+          kindLabel: KIND_LABELS[isAutomationKind(row.kind) ? row.kind : "keyword_dm"],
+        })),
+    );
+  }, [siblings, draft]);
+
+  const problems = draft ? problemsFor(draft, taken) : [];
 
   function patchConfig(next: Partial<IgAutomationConfig>) {
     setDraft((current) => (current ? { ...current, config: { ...current.config, ...next } } : current));
@@ -162,7 +183,13 @@ export default function IgAutomationDetailPage() {
   }
 
   async function remove() {
-    if (!saved || !window.confirm("Delete this automation? New comments will no longer get replies or DMs.")) return;
+    if (
+      !saved ||
+      !window.confirm(
+        "Delete this automation? Matching comments will stop triggering it. You can set up the same type again on this post.",
+      )
+    )
+      return;
     try {
       await deleteIgAutomation(saved.id);
       toast.success("Automation deleted");
@@ -324,6 +351,7 @@ export default function IgAutomationDetailPage() {
                 value={draft.keywords}
                 onChange={(keywords) => setDraft({ ...draft, keywords })}
                 minCount={minKeywordsFor(isAutomationKind(draft.kind) ? draft.kind : "keyword_dm")}
+                taken={taken}
               />
             ) : null}
 

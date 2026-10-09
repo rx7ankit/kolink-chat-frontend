@@ -31,6 +31,8 @@ import {
   createIgAutomation,
   getIgMedia,
   isReel,
+  listIgAutomations,
+  type IgAutomation,
   type IgAutomationConfig,
   type IgMediaItem,
 } from "@/lib/api/ig-automations";
@@ -44,7 +46,7 @@ import {
   type AutomationKind,
   type AutomationPlatform,
 } from "@/lib/comment-automations";
-import { keywordProblems } from "@/lib/ig-keywords";
+import { keywordProblems, takenKeywordMap } from "@/lib/ig-keywords";
 import { cn } from "@/lib/utils";
 
 const STEPS_DM = ["Post", "Keywords", "Follow check", "DM response", "Comment reply", "Review"] as const;
@@ -114,6 +116,7 @@ function AutomationWizard({
   const [step, setStep] = useState(fromBroadcast && presetMediaId ? 1 : 0);
   const [media, setMedia] = useState<IgMediaItem | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
+  const [siblings, setSiblings] = useState<IgAutomation[]>([]);
   const [followRequired, setFollowRequired] = useState(kind === "keyword_dm");
   const [commentReplyEnabled, setCommentReplyEnabled] = useState(kind !== "keyword_delete");
   const [config, setConfig] = useState<IgAutomationConfig>(kind === "keyword_dm" ? DEFAULT_CONFIG : REPLY_DEFAULT);
@@ -138,10 +141,29 @@ function AutomationWizard({
       });
   }, [presetMediaId, fromBroadcast, router, platform, kind]);
 
+  useEffect(() => {
+    void listIgAutomations(platform)
+      .then(setSiblings)
+      .catch(() => undefined);
+  }, [platform]);
+
+  const taken = useMemo(() => {
+    if (!media) return new Map<string, string>();
+    return takenKeywordMap(
+      siblings
+        .filter((row) => row.media_id === media.id)
+        .map((row) => ({
+          keywords: row.keywords,
+          kind: row.kind || "keyword_dm",
+          kindLabel: KIND_LABELS[isAutomationKind(row.kind) ? row.kind : "keyword_dm"],
+        })),
+    );
+  }, [siblings, media]);
+
   const problems = useMemo(() => {
     const label = steps[step];
     if (label === "Post") return media ? [] : ["Pick a post"];
-    if (label === "Keywords") return keywordProblems(keywords, minKeywords);
+    if (label === "Keywords") return keywordProblems(keywords, minKeywords, taken);
     if (label === "Follow check") {
       return followRequired && (!config.follow_prompt.trim() || !config.follow_button.trim())
         ? ["Fill in the follow message and button"]
@@ -161,7 +183,7 @@ function AutomationWizard({
         : [];
     }
     return [];
-  }, [step, steps, media, keywords, minKeywords, followRequired, config, commentReplyEnabled]);
+  }, [step, steps, media, keywords, minKeywords, taken, followRequired, config, commentReplyEnabled]);
 
   function patch(next: Partial<IgAutomationConfig>) {
     setConfig((current) => ({ ...current, ...next }));
@@ -290,11 +312,11 @@ function AutomationWizard({
               <h2 className="font-semibold">Trigger keywords</h2>
               <FieldHint>
                 {kind === "keyword_delete"
-                  ? "A comment containing any of these is deleted. Add at least 3 variations."
-                  : "A comment containing any of these starts the automation."}
+                  ? "A comment containing any of these is deleted. Case does not matter. Add at least 3 different words."
+                  : "A comment containing any of these starts the automation. Case does not matter."}
               </FieldHint>
             </div>
-            <KeywordInput value={keywords} onChange={setKeywords} minCount={minKeywords} />
+            <KeywordInput value={keywords} onChange={setKeywords} minCount={minKeywords} taken={taken} />
           </section>
         ) : null}
 

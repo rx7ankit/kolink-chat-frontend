@@ -17,7 +17,9 @@ import {
   MAX_KEYWORDS,
   MAX_VARIATIONS,
   MIN_KEYWORDS,
+  cleanKeywords,
   matchKeyword,
+  normalizeKeyword,
   shortKeywords,
 } from "@/lib/ig-keywords";
 import { cn } from "@/lib/utils";
@@ -26,10 +28,12 @@ export function KeywordInput({
   value,
   onChange,
   minCount = MIN_KEYWORDS,
+  taken,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   minCount?: number;
+  taken?: Map<string, string>;
 }) {
   const [draft, setDraft] = useState("");
   const [sample, setSample] = useState("");
@@ -44,9 +48,17 @@ export function KeywordInput({
     const next = [...value];
     for (const part of parts) {
       if (next.length >= MAX_KEYWORDS) break;
-      if (!next.includes(part)) next.push(part);
+      const key = normalizeKeyword(part);
+      if (!key) continue;
+      const owner = taken?.get(key);
+      if (owner) {
+        toast.error(`“${part}” is already used on ${owner}`);
+        continue;
+      }
+      if (next.some((item) => normalizeKeyword(item) === key)) continue;
+      next.push(part);
     }
-    onChange(next);
+    onChange(cleanKeywords(next));
     setDraft("");
   }
 
@@ -90,10 +102,11 @@ export function KeywordInput({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        {value.length}/{MAX_KEYWORDS} · at least {minCount} variations (e.g. link, linkk, LINK, 🔗). Matching
-        ignores case, spaces, and punctuation. Keywords of 3+ characters still match inside a comment
-        (“linkplease” triggers “link”). Shorter ones only match that exact comment, so “hi” will not fire on
-        “this” or “his”.
+        {value.length}/{MAX_KEYWORDS} · at least {minCount} different words (e.g. link, linkk, 🔗). LINK, link, and
+        LiNk all match the same trigger — you only add it once. A word used on another automation for this post
+        cannot be reused. Matching also ignores spaces and punctuation. Keywords of 3+ characters still match
+        inside a comment (“linkplease” triggers “link”). Shorter ones only match that exact comment, so “hi”
+        will not fire on “this” or “his”.
       </p>
       {short.length ? (
         <p className="text-xs text-amber-700">

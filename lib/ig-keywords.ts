@@ -35,12 +35,49 @@ export function matchKeyword(comment: string, keywords: string[]): string | null
   return null;
 }
 
-export function keywordProblems(keywords: string[], minCount = MIN_KEYWORDS): string[] {
+export function cleanKeywords(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const item of raw || []) {
+    const value = (item || "").trim().slice(0, MAX_KEYWORD_LENGTH);
+    const key = normalizeKeyword(value);
+    if (!value || !key || seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(value);
+  }
+  return cleaned;
+}
+
+export function takenKeywordMap(rows: { keywords: string[]; kind: string; kindLabel?: string }[]): Map<string, string> {
+  const taken = new Map<string, string>();
+  for (const row of rows) {
+    const label = row.kindLabel || row.kind;
+    for (const keyword of row.keywords || []) {
+      const key = normalizeKeyword(keyword);
+      if (key && !taken.has(key)) taken.set(key, label);
+    }
+  }
+  return taken;
+}
+
+export function keywordProblems(
+  keywords: string[],
+  minCount = MIN_KEYWORDS,
+  taken?: Map<string, string>,
+): string[] {
   const problems: string[] = [];
   if (keywords.length < minCount) problems.push(`Add at least ${minCount} keyword variations`);
   if (keywords.length > MAX_KEYWORDS) problems.push(`Use at most ${MAX_KEYWORDS} keyword variations`);
   if (keywords.some((keyword) => !normalizeKeyword(keyword))) {
     problems.push("Keywords need at least one letter, number, or emoji");
+  }
+  const seen = new Set<string>();
+  for (const keyword of keywords) {
+    const key = normalizeKeyword(keyword);
+    const owner = key ? taken?.get(key) : undefined;
+    if (!key || !owner || seen.has(key)) continue;
+    seen.add(key);
+    problems.push(`“${keyword}” is already used on ${owner}`);
   }
   return problems;
 }

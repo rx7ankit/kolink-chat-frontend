@@ -356,8 +356,8 @@ function AutomationsPageInner() {
           <DialogHeader>
             <DialogTitle>Delete automation?</DialogTitle>
             <DialogDescription>
-              New comments on “{deleting?.name}” will no longer get replies or DMs. Its activity history is removed
-              too.
+              Matching comments on “{deleting?.name}” will stop triggering this automation. You can create the same
+              type again on that post. Its activity history is removed too.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
