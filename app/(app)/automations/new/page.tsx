@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +48,8 @@ import {
   type AutomationPlatform,
 } from "@/lib/comment-automations";
 import { keywordProblems, takenKeywordMap } from "@/lib/ig-keywords";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { cn } from "@/lib/utils";
 
 const STEPS_DM = ["Post", "Keywords", "Follow check", "DM response", "Comment reply", "Review"] as const;
@@ -111,6 +114,8 @@ function AutomationWizard({
   fromBroadcast: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
   const steps = stepsFor(kind);
   const minKeywords = minKeywordsFor(kind);
   const [step, setStep] = useState(fromBroadcast && presetMediaId ? 1 : 0);
@@ -210,6 +215,8 @@ function AutomationWizard({
               : null,
         },
       });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.igAutomations(ws, platform) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.igMedia(ws, platform) });
       toast.success("Automation is live");
       router.push(existingAutomationHref(created.id));
     } catch (error) {

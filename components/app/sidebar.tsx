@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { AccountMenu } from "@/components/app/account-menu";
 import { WorkspaceSwitcher } from "@/components/app/workspace-switcher";
@@ -11,8 +12,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/auth/provider";
 import { useI18n } from "@/lib/i18n/provider";
 import { appNavItems, isNavActive } from "@/lib/nav";
+import { prefetchNav } from "@/lib/query/prefetch";
 import { useSidebarCollapse } from "@/lib/sidebar/collapse";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +32,8 @@ export function AppNav({
 }) {
   const pathname = usePathname();
   const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const { workspace } = useAuth();
 
   return (
     <nav
@@ -46,6 +51,7 @@ export function AppNav({
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            onMouseEnter={() => prefetchNav(queryClient, item.href, workspace?.id ?? "")}
             aria-label={label}
             aria-current={active ? "page" : undefined}
             className={cn(

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Bar,
@@ -18,7 +19,7 @@ import {
 import { ChannelIcon } from "@/components/channel-badge";
 import { SparkArea } from "@/components/charts/spark-area";
 import { PageHeader, StatCard } from "@/components/page-header";
-import { getAnalytics, type AnalyticsBundle } from "@/lib/api/analytics";
+import { getAnalytics } from "@/lib/api/analytics";
 import {
   getFacebookInsights,
   getInstagramInsights,
@@ -27,6 +28,8 @@ import {
   type ChannelInsightsMetric,
 } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 const pieColors = ["#2563EB", "#60A5FA", "#38BDF8", "#818CF8", "#93C5FD"];
@@ -132,83 +135,76 @@ function InsightsMetricGrid({
 }
 
 export default function InsightsPage() {
-  const [data, setData] = useState<AnalyticsBundle | null>(null);
-  const [igInsights, setIgInsights] = useState<ChannelInsightsMetric[] | null>(null);
-  const [fbInsights, setFbInsights] = useState<ChannelInsightsMetric[] | null>(null);
-  const [thInsights, setThInsights] = useState<ChannelInsightsMetric[] | null>(null);
-  const [igConnected, setIgConnected] = useState(false);
-  const [fbConnected, setFbConnected] = useState(false);
-  const [thConnected, setThConnected] = useState(false);
-  const [fbPageName, setFbPageName] = useState<string | null>(null);
-  const [thHandle, setThHandle] = useState<string | null>(null);
-  const [igError, setIgError] = useState<string | null>(null);
-  const [fbError, setFbError] = useState<string | null>(null);
-  const [thError, setThError] = useState<string | null>(null);
+  const ws = useWorkspaceId();
+  const analyticsQuery = useQuery({
+    queryKey: queryKeys.analytics(ws),
+    queryFn: getAnalytics,
+    enabled: Boolean(ws),
+  });
+  const channelsQuery = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
+  const channels = channelsQuery.data ?? [];
+  const ig = channels.find((c) => c.channel === "instagram" && c.connected);
+  const fb = channels.find((c) => c.channel === "facebook" && c.connected);
+  const messenger = channels.find((c) => c.channel === "messenger" && c.connected);
+  const threads = channels.find((c) => c.channel === "threads" && c.connected);
+  const igConnected = Boolean(ig);
+  const fbConnected = Boolean(fb || messenger);
+  const thConnected = Boolean(threads);
+  const fbPageName = fb?.handle || messenger?.handle || null;
+  const thHandle = threads?.handle || null;
+
+  const igQuery = useQuery({
+    queryKey: queryKeys.insights(ws, "instagram"),
+    queryFn: getInstagramInsights,
+    enabled: Boolean(ws) && igConnected,
+    retry: false,
+  });
+  const fbQuery = useQuery({
+    queryKey: queryKeys.insights(ws, "facebook"),
+    queryFn: getFacebookInsights,
+    enabled: Boolean(ws) && fbConnected,
+    retry: false,
+  });
+  const thQuery = useQuery({
+    queryKey: queryKeys.insights(ws, "threads"),
+    queryFn: getThreadsInsights,
+    enabled: Boolean(ws) && thConnected,
+    retry: false,
+  });
 
   useEffect(() => {
-    void getAnalytics()
-      .then(setData)
-      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load insights"));
-    void listChannels()
-      .then((channels) => {
-        const ig = channels.find((c) => c.channel === "instagram" && c.connected);
-        const fb = channels.find((c) => c.channel === "facebook" && c.connected);
-        const messenger = channels.find((c) => c.channel === "messenger" && c.connected);
-        const threads = channels.find((c) => c.channel === "threads" && c.connected);
-        setIgConnected(Boolean(ig));
-        setFbConnected(Boolean(fb || messenger));
-        setThConnected(Boolean(threads));
-        setFbPageName(fb?.handle || messenger?.handle || null);
-        setThHandle(threads?.handle || null);
+    if (!analyticsQuery.error) return;
+    toast.error(
+      analyticsQuery.error instanceof ApiError ? analyticsQuery.error.detail : "Failed to load insights",
+    );
+  }, [analyticsQuery.error]);
 
-        const tasks: Promise<void>[] = [];
-        if (ig) {
-          tasks.push(
-            getInstagramInsights()
-              .then((res) => {
-                setIgInsights(res.data ?? []);
-                setIgError(null);
-              })
-              .catch((error) => {
-                setIgInsights([]);
-                setIgError(error instanceof ApiError ? error.detail : "Could not load Instagram insights");
-              }),
-          );
-        }
-        if (fb || messenger) {
-          tasks.push(
-            getFacebookInsights()
-              .then((res) => {
-                setFbInsights(res.data ?? []);
-                setFbError(null);
-              })
-              .catch((error) => {
-                setFbInsights([]);
-                setFbError(error instanceof ApiError ? error.detail : "Could not load Facebook insights");
-              }),
-          );
-        }
-        if (threads) {
-          tasks.push(
-            getThreadsInsights()
-              .then((res) => {
-                setThInsights(res.data ?? []);
-                setThError(null);
-              })
-              .catch((error) => {
-                setThInsights([]);
-                setThError(error instanceof ApiError ? error.detail : "Could not load Threads insights");
-              }),
-          );
-        }
-        return Promise.all(tasks);
-      })
-      .catch(() => {
-        setIgConnected(false);
-        setFbConnected(false);
-        setThConnected(false);
-      });
-  }, []);
+  const data = analyticsQuery.data ?? null;
+  const igInsights = igQuery.data?.data ?? null;
+  const fbInsights = fbQuery.data?.data ?? null;
+  const thInsights = thQuery.data?.data ?? null;
+  const igError =
+    igQuery.error instanceof ApiError
+      ? igQuery.error.detail
+      : igQuery.error
+        ? "Could not load Instagram insights"
+        : null;
+  const fbError =
+    fbQuery.error instanceof ApiError
+      ? fbQuery.error.detail
+      : fbQuery.error
+        ? "Could not load Facebook insights"
+        : null;
+  const thError =
+    thQuery.error instanceof ApiError
+      ? thQuery.error.detail
+      : thQuery.error
+        ? "Could not load Threads insights"
+        : null;
 
   const stats = data?.summary;
   const languages = data?.languages ?? [];

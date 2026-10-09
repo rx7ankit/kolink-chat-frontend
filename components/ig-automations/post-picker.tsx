@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Check, Loader2, MessageCircle, Radio } from "lucide-react";
 
 import { PostThumb } from "@/components/ig-automations/post-thumb";
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/client";
 import { isReel, listIgMedia, type IgMediaItem } from "@/lib/api/ig-automations";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "reels" | "posts";
@@ -31,40 +34,28 @@ export function PostPicker({
   platform?: "instagram" | "facebook" | "threads";
   kind?: string;
 }) {
-  const [items, setItems] = useState<IgMediaItem[]>([]);
-  const [next, setNext] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const ws = useWorkspaceId();
   const [filter, setFilter] = useState<Filter>("all");
-
-  const fetchPage = useCallback(
-    (after: string | null) => {
-      return listIgMedia(after, { platform, kind })
-        .then((page) => {
-          setItems((current) => (after ? [...current, ...page.items] : page.items));
-          setNext(page.next);
-        })
-        .catch((err) =>
-          setError(err instanceof ApiError ? err.detail : `Could not load your ${platform} posts`),
-        )
-        .finally(() => setLoading(false));
-    },
-    [platform, kind],
-  );
+  const mediaQuery = useInfiniteQuery({
+    queryKey: queryKeys.igMedia(ws, platform, kind),
+    queryFn: ({ pageParam }) => listIgMedia(pageParam, { platform, kind }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next,
+    enabled: Boolean(ws),
+  });
+  const items = mediaQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const next = mediaQuery.hasNextPage ? mediaQuery.data?.pages.at(-1)?.next ?? null : null;
+  const loading = mediaQuery.isPending || mediaQuery.isFetchingNextPage;
+  const error = mediaQuery.error
+    ? mediaQuery.error instanceof ApiError
+      ? mediaQuery.error.detail
+      : `Could not load your ${platform} posts`
+    : null;
 
   function load(after: string | null) {
-    setLoading(true);
-    setError(null);
-    void fetchPage(after);
+    if (after) void mediaQuery.fetchNextPage();
+    else void mediaQuery.refetch();
   }
-
-  useEffect(() => {
-    setItems([]);
-    setNext(null);
-    setLoading(true);
-    setError(null);
-    void fetchPage(null);
-  }, [fetchPage]);
 
   const visible = useMemo(
     () =>

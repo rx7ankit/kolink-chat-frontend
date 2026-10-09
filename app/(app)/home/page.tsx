@@ -1,36 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 import { ChannelIcon } from "@/components/channel-badge";
 import { SparkArea } from "@/components/charts/spark-area";
 import { PageHeader, StatCard } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { getAnalytics, type AnalyticsBundle } from "@/lib/api/analytics";
-import { listTemplates, type ApiTemplate } from "@/lib/api/automations";
-import { listChannels, type ApiChannel } from "@/lib/api/channels";
+import { getAnalytics } from "@/lib/api/analytics";
+import { listTemplates } from "@/lib/api/automations";
+import { listChannels } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
 import { channels as catalog } from "@/lib/mock";
 import type { ChannelId } from "@/lib/mock";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export default function HomePage() {
-  const [data, setData] = useState<AnalyticsBundle | null>(null);
-  const [channelRows, setChannelRows] = useState<ApiChannel[]>([]);
-  const [templates, setTemplates] = useState<ApiTemplate[]>([]);
+  const ws = useWorkspaceId();
+  const analyticsQuery = useQuery({
+    queryKey: queryKeys.analytics(ws),
+    queryFn: getAnalytics,
+    enabled: Boolean(ws),
+  });
+  const channelsQuery = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
+  const templatesQuery = useQuery({
+    queryKey: queryKeys.templates(ws),
+    queryFn: listTemplates,
+    enabled: Boolean(ws),
+  });
 
   useEffect(() => {
-    void Promise.all([getAnalytics(), listChannels(), listTemplates()])
-      .then(([analytics, chans, tpls]) => {
-        setData(analytics);
-        setChannelRows(chans);
-        setTemplates(tpls.slice(0, 5));
-      })
-      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load home"));
-  }, []);
+    const error = analyticsQuery.error || channelsQuery.error || templatesQuery.error;
+    if (!error) return;
+    toast.error(error instanceof ApiError ? error.detail : "Failed to load home");
+  }, [analyticsQuery.error, channelsQuery.error, templatesQuery.error]);
+
+  const data = analyticsQuery.data ?? null;
+  const channelRows = channelsQuery.data ?? [];
+  const templates = (templatesQuery.data ?? []).slice(0, 5);
 
   const stats = data?.summary;
   const byChannel = new Map(channelRows.map((row) => [row.channel, row]));

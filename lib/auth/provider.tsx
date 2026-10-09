@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   listWorkspaces,
@@ -51,6 +52,7 @@ function pickWorkspace(list: Workspace[], preferredId: string | null) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -111,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       logout() {
         apiLogout();
+        queryClient.clear();
         setUser(null);
         setWorkspace(null);
         setWorkspaces([]);
@@ -130,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return created;
       },
     }),
-    [user, workspace, workspaces, loading, refresh, applyWorkspaces],
+    [user, workspace, workspaces, loading, refresh, applyWorkspaces, queryClient],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

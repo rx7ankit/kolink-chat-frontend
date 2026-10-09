@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, LayoutTemplate } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,13 +12,11 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  listTemplates,
-  useTemplate as createAutomationFromTemplate,
-  type ApiTemplate,
-} from "@/lib/api/automations";
+import { listTemplates, useTemplate as createAutomationFromTemplate } from "@/lib/api/automations";
 import { ApiError } from "@/lib/api/client";
 import type { ChannelId } from "@/lib/mock";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 
 type PlatformTab = "all" | "whatsapp" | "instagram" | "facebook" | "threads";
 
@@ -75,14 +74,19 @@ function MessageTemplatesCard() {
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<ApiTemplate[]>([]);
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const { data: templates = [], error } = useQuery({
+    queryKey: queryKeys.templates(ws),
+    queryFn: listTemplates,
+    enabled: Boolean(ws),
+  });
   const [tab, setTab] = useState<PlatformTab>("all");
 
   useEffect(() => {
-    void listTemplates()
-      .then(setTemplates)
-      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load templates"));
-  }, []);
+    if (!error) return;
+    toast.error(error instanceof ApiError ? error.detail : "Failed to load templates");
+  }, [error]);
 
   const visible = useMemo(() => {
     if (tab === "all") return templates;
@@ -95,6 +99,7 @@ export default function TemplatesPage() {
   async function applyTemplate(id: string) {
     try {
       const created = await createAutomationFromTemplate(id);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.automations(ws) });
       toast.success("Automation created from template");
       router.push(`/automations/${created.id}`);
     } catch (error) {

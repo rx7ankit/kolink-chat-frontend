@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,11 +44,12 @@ import {
   isLiveSocialBroadcast,
   liveDeleteCopy,
   listBroadcasts,
-  toUiBroadcast,
   type ImportablePlatform,
 } from "@/lib/api/broadcasts";
 import { ApiError } from "@/lib/api/client";
 import { useI18n } from "@/lib/i18n/provider";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import type { Broadcast } from "@/lib/mock";
 import { PUBLISH_PLATFORMS, asChannelId, overallBadgeVariant, statusLabel, type PublishPlatformId } from "@/lib/publish";
 import { formatRelativeTime } from "@/lib/utils";
@@ -97,7 +99,13 @@ export default function BroadcastsPage() {
 function BroadcastsPageInner() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
-  const [rows, setRows] = useState<Broadcast[]>([]);
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const { data: rows = [], isPending, error } = useQuery({
+    queryKey: queryKeys.broadcasts(ws),
+    queryFn: listBroadcasts,
+    enabled: Boolean(ws),
+  });
   const [tab, setTab] = useState<BroadcastTab>("all");
   const [pendingDelete, setPendingDelete] = useState<Broadcast | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -129,17 +137,12 @@ function BroadcastsPageInner() {
     return next;
   }, [liveRows, unpublishedRows]);
 
-  const reload = useCallback(async () => {
-    try {
-      setRows(await listBroadcasts());
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.detail : "Failed to load broadcasts");
-    }
-  }, []);
+  const reload = () => queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts(ws) });
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    if (!error) return;
+    toast.error(error instanceof ApiError ? error.detail : "Failed to load broadcasts");
+  }, [error]);
 
   useEffect(() => {
     const requested = searchParams.get("tab");
@@ -204,7 +207,7 @@ function BroadcastsPageInner() {
             {!pager.slice.length ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-16 text-center text-sm text-muted-foreground">
-                  {emptyCopy}
+                  {isPending ? "Loading…" : emptyCopy}
                 </TableCell>
               </TableRow>
             ) : null}
@@ -264,8 +267,8 @@ function BroadcastsPageInner() {
                         <DropdownMenuItem
                           onClick={async () => {
                             try {
-                              const copy = await duplicateBroadcast(item.id);
-                              setRows((current) => [toUiBroadcast(copy), ...current]);
+                              await duplicateBroadcast(item.id);
+                              await reload();
                               toast.success("Broadcast duplicated");
                             } catch (error) {
                               toast.error(error instanceof ApiError ? error.detail : "Duplicate failed");
@@ -329,9 +332,8 @@ function BroadcastsPageInner() {
                 setBusy(true);
                 try {
                   const result = await deleteBroadcast(pendingDelete.id);
+                  await reload();
                   if (isDeletedBroadcast(result)) {
-                    const mapped = toUiBroadcast(result);
-                    setRows((current) => current.map((row) => (row.id === mapped.id ? mapped : row)));
                     toast.success(
                       isLiveSocialBroadcast(pendingDelete)
                         ? liveDeleteCopy(pendingDelete).success
@@ -340,9 +342,7 @@ function BroadcastsPageInner() {
                     if (isLiveSocialBroadcast(pendingDelete)) setTab("unpublished");
                   } else if (isLiveSocialBroadcast(pendingDelete)) {
                     toast.error(liveDeleteCopy(pendingDelete).fail);
-                    await reload();
                   } else {
-                    setRows((current) => current.filter((row) => row.id !== pendingDelete.id));
                     toast.success("Broadcast deleted");
                   }
                   setPendingDelete(null);

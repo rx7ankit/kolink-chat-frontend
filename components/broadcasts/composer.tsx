@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ImagePlus, Loader2, Music2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,15 +21,17 @@ import {
   scheduleBroadcast,
   updateBroadcast,
 } from "@/lib/api/broadcasts";
-import { listChannels, type ApiChannel } from "@/lib/api/channels";
+import { listChannels } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { uploadInboxFile } from "@/lib/api/inbox";
 import {
   aspectForPostType,
   ensurePublicMediaUrls,
   mediaWarningsForPost,
 } from "@/lib/broadcast-media";
-import { listSegments, type SegmentRow } from "@/lib/api/contacts";
+import { listSegments } from "@/lib/api/contacts";
 import {
   POST_TYPES,
   audienceDmSupported,
@@ -58,6 +61,8 @@ export type ComposerValue = {
 
 export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
   const router = useRouter();
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [name, setName] = useState(initial?.name || "Untitled broadcast");
   const [platforms, setPlatforms] = useState<PublishPlatformId[]>(initial?.platforms || ["instagram"]);
   const [postMode, setPostMode] = useState<PostMode>(initial?.postMode || "social_post");
@@ -67,8 +72,16 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
   const [mediaUrls, setMediaUrls] = useState<string[]>(initial?.mediaUrls || []);
   const [mediaUrlDraft, setMediaUrlDraft] = useState("");
   const [previewPlatform, setPreviewPlatform] = useState<PublishPlatformId>(initial?.platforms?.[0] || "instagram");
-  const [channels, setChannels] = useState<ApiChannel[]>([]);
-  const [segments, setSegments] = useState<SegmentRow[]>([]);
+  const { data: channels = [] } = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
+  const { data: segments = [] } = useQuery({
+    queryKey: queryKeys.contactSegments(ws),
+    queryFn: listSegments,
+    enabled: Boolean(ws),
+  });
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [cropUrl, setCropUrl] = useState<string | null>(null);
@@ -82,14 +95,6 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
     return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}T${pad(next.getHours())}:${pad(next.getMinutes())}`;
   });
 
-  useEffect(() => {
-    void listChannels()
-      .then(setChannels)
-      .catch(() => setChannels([]));
-    void listSegments()
-      .then(setSegments)
-      .catch(() => setSegments([]));
-  }, []);
 
   const connected = useMemo(
     () => new Set(channels.filter((row) => row.connected).map((row) => row.channel)),
@@ -211,6 +216,7 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
       };
       if (initial?.id) {
         const row = await updateBroadcast(initial.id, payload);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts(ws) });
         if (action === "publish") {
           const sent = await sendBroadcast(row.id);
           toast.success("Published — check platform results");
@@ -228,6 +234,7 @@ export function BroadcastComposer({ initial }: { initial?: ComposerValue }) {
       }
 
       const created = await createBroadcast(payload);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts(ws) });
       if (action === "publish") {
         await Promise.all(created.map((item) => sendBroadcast(item.id)));
         toast.success(created.length > 1 ? `Published ${created.length} posts` : "Published — check platform results");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ChannelCard, ChannelCardSkeleton, type ChannelCardItem } from "@/components/channels/channel-card";
@@ -30,6 +31,8 @@ import {
   type MetaStatus,
 } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { oauthCallbackUrl, webhookUrl } from "@/lib/api/url";
 import {
   facebookSdkReady,
@@ -74,11 +77,17 @@ function merge(apiRows: ApiChannel[]): ChannelCardItem[] {
 }
 
 export default function ChannelsPage() {
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const channelsQuery = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
   const [items, setItems] = useState<ChannelCardItem[]>(emptyItems);
   const [pending, setPending] = useState<Channel | null>(null);
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState<MetaStatus | null>(null);
   const [profileChannel, setProfileChannel] = useState<ChannelId | null>(null);
   const [profile, setProfile] = useState<ChannelProfile | null>(null);
@@ -125,24 +134,25 @@ export default function ChannelsPage() {
     );
   }, []);
 
+  const loading = channelsQuery.isPending && !channelsQuery.data;
+
   const reload = useCallback(async () => {
-    setLoading(true);
-    try {
-      const rows = await listChannels();
-      const merged = merge(rows);
-      setItems(merged);
-      void refreshProfiles(merged);
-    } catch (error) {
-      setItems(emptyItems());
-      toast.error(error instanceof ApiError ? error.detail : "Failed to load channels");
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshProfiles]);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.channels(ws) });
+  }, [queryClient, ws]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    if (channelsQuery.error) {
+      setItems(emptyItems());
+      toast.error(
+        channelsQuery.error instanceof ApiError ? channelsQuery.error.detail : "Failed to load channels",
+      );
+      return;
+    }
+    if (!channelsQuery.data) return;
+    const merged = merge(channelsQuery.data);
+    setItems(merged);
+    void refreshProfiles(merged);
+  }, [channelsQuery.data, channelsQuery.error, refreshProfiles]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

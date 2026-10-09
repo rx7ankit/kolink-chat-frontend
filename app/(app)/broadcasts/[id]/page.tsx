@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BroadcastAutomationsButton } from "@/components/ig-automations/broadcast-automations-button";
 import { deleteBroadcast, duplicateBroadcast, getBroadcast, isDeletedBroadcast, isLiveSocialBroadcast, liveDeleteCopy, sendBroadcast, toUiBroadcast } from "@/lib/api/broadcasts";
-import { listChannels, type ApiChannel } from "@/lib/api/channels";
+import { listChannels } from "@/lib/api/channels";
 import { ApiError } from "@/lib/api/client";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import type { Broadcast } from "@/lib/mock";
 import { overallBadgeVariant, statusLabel, type PublishPlatformId } from "@/lib/publish";
 
@@ -27,10 +30,15 @@ export default function BroadcastDetailPage() {
   const [preview, setPreview] = useState<PublishPlatformId>("instagram");
   const [busy, setBusy] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [channels, setChannels] = useState<ApiChannel[]>([]);
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const { data: channels = [] } = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
 
   useEffect(() => {
-    void listChannels().then(setChannels).catch(() => setChannels([]));
     void getBroadcast(params.id)
       .then((row) => {
         setItem(row);
@@ -71,6 +79,7 @@ export default function BroadcastDetailPage() {
                 setBusy(true);
                 try {
                   const copy = await duplicateBroadcast(item.id);
+                  await queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts(ws) });
                   toast.success("Duplicated");
                   router.push(`/broadcasts/${copy.id}/edit`);
                 } catch (error) {
@@ -188,6 +197,7 @@ export default function BroadcastDetailPage() {
               setBusy(true);
               try {
                 const result = await deleteBroadcast(item.id);
+                await queryClient.invalidateQueries({ queryKey: queryKeys.broadcasts(ws) });
                 if (isDeletedBroadcast(result)) {
                   setItem(toUiBroadcast(result));
                   toast.success(liveSocial ? deleteCopy.success : "Broadcast deleted");

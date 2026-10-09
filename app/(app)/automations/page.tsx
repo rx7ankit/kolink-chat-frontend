@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Loader2, MoreHorizontal, Plus, Trash2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,6 +49,8 @@ import {
   type AutomationPlatform,
 } from "@/lib/comment-automations";
 import { useI18n } from "@/lib/i18n/provider";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 
 function postedLabel(row: IgAutomation) {
   const value = row.posted_at || row.created_at;
@@ -74,8 +77,14 @@ function AutomationsPageInner() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("platform");
   const tab: AutomationPlatform = isAutomationPlatform(tabParam) ? tabParam : "instagram";
-  const [rows, setRows] = useState<IgAutomation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const listKey = queryKeys.igAutomations(ws, tab);
+  const { data: rows = [], isPending: loading, error } = useQuery({
+    queryKey: listKey,
+    queryFn: () => listIgAutomations(tab),
+    enabled: Boolean(ws),
+  });
   const [duplicating, setDuplicating] = useState<IgAutomation | null>(null);
   const [duplicateMedia, setDuplicateMedia] = useState<IgMediaItem | null>(null);
   const [deleting, setDeleting] = useState<IgAutomation | null>(null);
@@ -88,21 +97,21 @@ function AutomationsPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    setLoading(true);
-    setRows([]);
-    void listIgAutomations(tab)
-      .then(setRows)
-      .catch((error) => toast.error(error instanceof ApiError ? error.detail : "Failed to load automations"))
-      .finally(() => setLoading(false));
-  }, [tab]);
+    if (!error) return;
+    toast.error(error instanceof ApiError ? error.detail : "Failed to load automations");
+  }, [error]);
 
   async function toggle(row: IgAutomation, enabled: boolean) {
-    setRows((current) => current.map((item) => (item.id === row.id ? { ...item, enabled } : item)));
+    queryClient.setQueryData<IgAutomation[]>(listKey, (current) =>
+      (current ?? []).map((item) => (item.id === row.id ? { ...item, enabled } : item)),
+    );
     try {
       await updateIgAutomation(row.id, { enabled });
       toast.success(enabled ? "Automation turned on" : "Automation turned off");
     } catch (error) {
-      setRows((current) => current.map((item) => (item.id === row.id ? { ...item, enabled: !enabled } : item)));
+      queryClient.setQueryData<IgAutomation[]>(listKey, (current) =>
+        (current ?? []).map((item) => (item.id === row.id ? { ...item, enabled: !enabled } : item)),
+      );
       toast.error(error instanceof ApiError ? error.detail : "Could not update");
     }
   }
@@ -112,6 +121,7 @@ function AutomationsPageInner() {
     setBusy(true);
     try {
       const created = await duplicateIgAutomation(duplicating.id, duplicateMedia.id);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.igAutomations(ws, tab) });
       toast.success("Automation copied to the new post");
       setDuplicating(null);
       setDuplicateMedia(null);
@@ -128,7 +138,7 @@ function AutomationsPageInner() {
     setBusy(true);
     try {
       await deleteIgAutomation(deleting.id);
-      setRows((current) => current.filter((item) => item.id !== deleting.id));
+      await queryClient.invalidateQueries({ queryKey: listKey });
       toast.success("Automation deleted");
       setDeleting(null);
     } catch (error) {

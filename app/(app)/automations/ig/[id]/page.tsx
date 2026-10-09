@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +40,8 @@ import {
 } from "@/lib/api/ig-automations";
 import { KIND_LABELS, isAutomationKind, minKeywordsFor, platformLabel } from "@/lib/comment-automations";
 import { keywordProblems, takenKeywordMap } from "@/lib/ig-keywords";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 
 const BLOCK_TITLES: Record<CanvasBlock, string> = {
   post: "Post",
@@ -80,6 +83,8 @@ function problemsFor(draft: IgAutomation, taken?: Map<string, string>): string[]
 export default function IgAutomationDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
   const id = params.id;
   const [saved, setSaved] = useState<IgAutomation | null>(null);
   const [draft, setDraft] = useState<IgAutomation | null>(null);
@@ -162,6 +167,9 @@ export default function IgAutomationDetailPage() {
       });
       setSaved(row);
       setDraft(row);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.igAutomations(ws, row.platform || "instagram"),
+      });
       toast.success("Changes saved — new comments use them right away");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.detail : "Could not save");
@@ -176,6 +184,9 @@ export default function IgAutomationDetailPage() {
       const row = await updateIgAutomation(saved.id, { enabled });
       setSaved(row);
       setDraft((current) => (current ? { ...current, enabled: row.enabled } : row));
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.igAutomations(ws, row.platform || "instagram"),
+      });
       toast.success(enabled ? "Automation turned on" : "Automation turned off");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.detail : "Could not update");
@@ -192,6 +203,12 @@ export default function IgAutomationDetailPage() {
       return;
     try {
       await deleteIgAutomation(saved.id);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.igAutomations(ws, saved.platform || "instagram"),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.igMedia(ws, saved.platform || "instagram"),
+      });
       toast.success("Automation deleted");
       router.push("/automations");
     } catch (error) {

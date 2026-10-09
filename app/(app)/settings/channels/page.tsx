@@ -1,22 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { ChannelBadge } from "@/components/channel-badge";
 import { Button } from "@/components/ui/button";
-import { listChannels, type ApiChannel } from "@/lib/api/channels";
+import { listChannels } from "@/lib/api/channels";
 import { channels as catalog } from "@/lib/mock";
 import type { ChannelId } from "@/lib/mock";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 
 export default function ChannelSettingsPage() {
-  const [rows, setRows] = useState<ApiChannel[]>([]);
-
-  useEffect(() => {
-    void listChannels()
-      .then(setRows)
-      .catch(() => setRows([]));
-  }, []);
+  const ws = useWorkspaceId();
+  const { data: rows = [] } = useQuery({
+    queryKey: queryKeys.channels(ws),
+    queryFn: listChannels,
+    enabled: Boolean(ws),
+  });
 
   const byChannel = new Map(rows.map((row) => [row.channel, row]));
 

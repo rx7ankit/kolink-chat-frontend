@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,12 +53,12 @@ import {
   listContacts,
   listSegments,
   listTags,
-  type SegmentRow,
-  type TagRow,
 } from "@/lib/api/contacts";
 import { ApiError } from "@/lib/api/client";
-import type { ChannelId, Contact } from "@/lib/mock";
+import type { ChannelId } from "@/lib/mock";
 import { useI18n } from "@/lib/i18n/provider";
+import { useWorkspaceId } from "@/lib/query/hooks";
+import { queryKeys } from "@/lib/query/keys";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 const CHANNELS = Object.keys(channelMeta) as ChannelId[];
@@ -69,13 +70,10 @@ export default function ContactsPage() {
   const [tag, setTag] = useState<string | "all">("all");
   const [channel, setChannel] = useState<"all" | ChannelId>("all");
   const [selected, setSelected] = useState<string[]>([]);
-  const [rows, setRows] = useState<Contact[]>([]);
-  const [segments, setSegments] = useState<SegmentRow[]>([]);
-  const [tags, setTags] = useState<TagRow[]>([]);
   const [page, setPage] = useState(1);
-  const [pageCount, setPageCount] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const ws = useWorkspaceId();
+  const queryClient = useQueryClient();
   const [tagOpen, setTagOpen] = useState(false);
   const [tagValue, setTagValue] = useState("VIP");
   const [tagTargetIds, setTagTargetIds] = useState<string[]>([]);
@@ -92,46 +90,77 @@ export default function ContactsPage() {
   });
   const pageSize = 8;
 
-  const reloadMeta = useCallback(async () => {
-    const [seg, tagRows] = await Promise.all([listSegments(), listTags()]);
-    setSegments(seg);
-    setTags(tagRows);
-  }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await listContacts({
-        q: query,
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, segment, tag, channel]);
+
+  const filters = {
+    q: debouncedQuery,
+    segment,
+    tag,
+    channel,
+    page,
+  };
+
+  const contactsQuery = useQuery({
+    queryKey: queryKeys.contacts(ws, filters),
+    queryFn: () =>
+      listContacts({
+        q: debouncedQuery,
         segment,
         tag: tag === "all" ? undefined : tag,
         channel,
         page,
         pageSize,
-      });
-      setRows(result.items);
-      setTotal(result.total);
-      setPageCount(result.page_count);
-      setSelected([]);
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.detail : "Failed to load contacts");
-    } finally {
-      setLoading(false);
-    }
-  }, [query, segment, tag, channel, page]);
+      }),
+    enabled: Boolean(ws),
+    placeholderData: keepPreviousData,
+  });
+  const tagsQuery = useQuery({
+    queryKey: queryKeys.contactTags(ws),
+    queryFn: listTags,
+    enabled: Boolean(ws),
+  });
+  const segmentsQuery = useQuery({
+    queryKey: queryKeys.contactSegments(ws),
+    queryFn: listSegments,
+    enabled: Boolean(ws),
+  });
+
+  const rows = contactsQuery.data?.items ?? [];
+  const total = contactsQuery.data?.total ?? 0;
+  const pageCount = contactsQuery.data?.page_count ?? 1;
+  const loading = contactsQuery.isPending;
+  const segments = segmentsQuery.data ?? [];
+  const tags = tagsQuery.data ?? [];
 
   useEffect(() => {
-    void reloadMeta();
-  }, [reloadMeta]);
+    if (!contactsQuery.error) return;
+    toast.error(
+      contactsQuery.error instanceof ApiError ? contactsQuery.error.detail : "Failed to load contacts",
+    );
+  }, [contactsQuery.error]);
 
   useEffect(() => {
-    const timer = setTimeout(() => void reload(), 200);
-    return () => clearTimeout(timer);
-  }, [reload]);
+    setSelected([]);
+  }, [debouncedQuery, segment, tag, channel, page]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [query, segment, tag, channel]);
+  const reload = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactsRoot(ws) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactTags(ws) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactSegments(ws) }),
+    ]);
+  const reloadMeta = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactTags(ws) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactSegments(ws) }),
+    ]);
 
   function toggleAll(checked: boolean) {
     setSelected(checked ? rows.map((row) => row.id) : []);
