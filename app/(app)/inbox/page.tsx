@@ -125,10 +125,17 @@ const channelFilters: { id: "all" | ChannelId; label: string }[] = [
   { id: "whatsapp", label: channelMeta.whatsapp.label },
   { id: "linkedin", label: channelMeta.linkedin.label },
   { id: "email", label: channelMeta.email.label },
-  { id: "facebook", label: channelMeta.facebook.label },
   { id: "threads", label: channelMeta.threads.label },
   { id: "x", label: channelMeta.x.label },
 ];
+
+function inboxChannelFromPrefs(value: string | null | undefined): "all" | ChannelId {
+  if (value === "facebook") return "messenger";
+  if (value && (value === "all" || channelFilters.some((item) => item.id === value))) {
+    return value as "all" | ChannelId;
+  }
+  return "all";
+}
 
 function inboxListCacheKey(
   folder: string,
@@ -282,14 +289,14 @@ export default function InboxPage() {
         setLabel("all");
       } else if (workspace?.id) {
         const prefs = readInboxPrefs(workspace.id);
-        if (prefs?.channel) setChannel(prefs.channel as "all" | ChannelId);
+        if (prefs?.channel) setChannel(inboxChannelFromPrefs(prefs.channel));
         if (prefs?.emailTab === "primary" || prefs?.emailTab === "promotions") setEmailTab(prefs.emailTab);
         if (prefs?.folder) setFolder(prefs.folder);
         if (prefs?.label) setLabel(prefs.label);
       } else {
         const savedChannel = sessionStorage.getItem("kolink_inbox_channel");
         const savedTab = sessionStorage.getItem("kolink_inbox_email_tab");
-        if (savedChannel) setChannel(savedChannel as "all" | ChannelId);
+        if (savedChannel) setChannel(inboxChannelFromPrefs(savedChannel));
         if (savedTab === "primary" || savedTab === "promotions") setEmailTab(savedTab);
       }
     } catch {
@@ -624,9 +631,7 @@ export default function InboxPage() {
   const searchPlaceholder = isEmailView ? "Search mail" : t("inbox.search");
   const replyPlaceholder = t("inbox.placeholder");
   const emptyStateText =
-    channel === "facebook"
-      ? "Facebook Page DMs appear under Messenger. Comments on posts you published from Broadcasts are on that broadcast."
-      : channel === "threads"
+    channel === "threads"
         ? "Threads private messages are not available via Meta's API yet. Replies on posts you published from Broadcasts are on that broadcast."
           : channel === "x"
               ? "No X DMs yet. Mentions and replies on posts you published from Broadcasts stay on that broadcast."
