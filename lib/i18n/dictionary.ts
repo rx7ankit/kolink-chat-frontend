@@ -4,6 +4,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
   en: {
     "nav.home": "Home",
     "nav.inbox": "Inbox",
+    "nav.autoreply": "Autoreply",
     "nav.contacts": "Contacts",
     "nav.automations": "Automations",
     "nav.broadcasts": "Broadcasts",
@@ -75,6 +76,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
   "zh-Hant": {
     "nav.home": "首頁",
     "nav.inbox": "收件匣",
+    "nav.autoreply": "自動回覆",
     "nav.contacts": "聯絡人",
     "nav.automations": "自動化",
     "nav.broadcasts": "群發訊息",

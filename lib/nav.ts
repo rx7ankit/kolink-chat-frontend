@@ -1,4 +1,5 @@
 import {
+  Bot,
   Home,
   Inbox,
   LayoutGrid,
@@ -14,6 +15,7 @@ import {
 export const appNavItems = [
   { href: "/home", labelKey: "nav.home", icon: Home },
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
+  { href: "/autoreply", labelKey: "nav.autoreply", icon: Bot },
   { href: "/contacts", labelKey: "nav.contacts", icon: Users },
   { href: "/team", labelKey: "nav.team", icon: UsersRound },
   { href: "/automations", labelKey: "nav.automations", icon: Workflow },
