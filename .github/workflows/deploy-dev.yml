@@ -1,8 +1,8 @@
-name: Deploy Chat web (EC2 staging)
+name: Deploy Chat web (EC2)
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
 
 concurrency:
   group: kolink-chat-ec2-web
@@ -17,7 +17,7 @@ jobs:
       - name: Require EC2 secrets
         run: |
           if [ -z "${{ secrets.EC2_HOST }}" ] || [ -z "${{ secrets.EC2_USER }}" ] || [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
-            echo "Add GitHub secrets EC2_HOST, EC2_USER, EC2_SSH_KEY on this repo so a push to dev can SSH to staging."
+            echo "Add GitHub secrets EC2_HOST, EC2_USER, EC2_SSH_KEY on this repo so a push to main can SSH to the EC2 box."
             exit 1
           fi
 
