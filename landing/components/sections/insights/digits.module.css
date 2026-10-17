@@ -1,0 +1,15 @@
+/*
+ * Odometer glyphs drawn as generated content, so the rolling strips never reach innerText,
+ * copy/paste, reader mode or find-in-page: those see only the sr-only value beside them.
+ * Each line of the strip is exactly one line box (the parent sets the line height).
+ */
+.strip::before {
+  content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+  display: block;
+  white-space: pre;
+}
+
+/* A single fixed glyph (separator, suffix or the invisible width sizer). */
+.ch::before {
+  content: attr(data-ch);
+}

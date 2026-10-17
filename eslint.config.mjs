@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The marketing site is its own pnpm project with its own lint config.
+    "landing/**",
   ]),
 ]);
 

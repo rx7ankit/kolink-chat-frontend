@@ -1,0 +1,77 @@
+/* v2 additions on top of film.css */
+.kline { line-height: 1; white-space: nowrap; }
+.kline .kw { display: inline-block; white-space: nowrap; }
+.kline .cm { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.1em 0.015em 0.2em; margin: -0.1em -0.015em -0.2em; }
+.kline .kw.em .cm { padding: 0.1em 0.14em 0.22em; margin: -0.1em -0.14em -0.22em; }
+.kline.free .cm { overflow: visible; }
+.kline .ci { display: inline-block; transform-origin: 50% 80%; }
+.badge-red {
+  position: absolute;
+  min-width: 46px;
+  height: 46px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #fff;
+  font: 600 24px/46px var(--sans);
+  text-align: center;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.fchip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 12px 12px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  font-size: 26px;
+  white-space: nowrap;
+  width: max-content;
+}
+.fchip .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 600 15px/1 var(--sans); color: var(--ink); background: var(--bg-alt); flex: none; }
+.fchip b { font-weight: 600; }
+.notif {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 560px;
+  padding: 16px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 40px -20px rgba(38, 43, 38, 0.25);
+}
+.notif .t1 { font-weight: 600; font-size: 20px; }
+.notif .t2 { font-size: 19px; color: var(--ink-soft); }
+.notif .tm { margin-left: auto; font: 400 15px/1 var(--mono); color: var(--ink-soft); align-self: flex-start; }
+.tab {
+  position: absolute;
+  top: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 14px 14px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  font-size: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.reddot { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 4px var(--bg); }
+.mlabel { font: 500 17px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.chipk {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  font-size: 19px;
+}

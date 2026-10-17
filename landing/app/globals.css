@@ -1,0 +1,290 @@
+@import "tailwindcss";
+
+/*
+ * Runtime tokens (--k-*) come from the Design Studio: palettes and font pairings
+ * are generated in lib/studio/look.ts and keyed off <html data-*> attributes.
+ * Tailwind utilities read them through @theme inline, e.g. bg-bg, text-ink,
+ * border-line, bg-accent text-accent-ink, font-display, rounded-xl.
+ */
+@theme inline {
+  --color-bg: var(--k-bg);
+  --color-bg-alt: var(--k-bg-alt);
+  --color-surface: var(--k-surface);
+  --color-ink: var(--k-ink);
+  --color-ink-soft: var(--k-ink-soft);
+  --color-line: var(--k-line);
+  /* ≥3:1 on bg/bgAlt/surface: borders of inputs and controls. */
+  --color-line-strong: var(--k-line-strong);
+  --color-accent: var(--k-accent);
+  --color-accent-ink: var(--k-accent-ink);
+  --color-accent-text: var(--k-accent-text);
+  /* Ink when the accent would vanish into the page (<3:1), else transparent. */
+  --color-accent-edge: var(--k-accent-edge);
+  /* Semantic pops: attention, agent, automation. */
+  --color-pop-1: var(--k-pop1);
+  --color-pop-2: var(--k-pop2);
+  --color-pop-3: var(--k-pop3);
+  --color-attention: var(--k-pop1);
+  --color-agent: var(--k-pop2);
+  --color-automation: var(--k-pop3);
+  /* Pops are fills only; use the -deep variants for thin strokes, rings and icons (≥3:1). */
+  --color-pop-1-deep: var(--k-pop1-deep);
+  --color-pop-2-deep: var(--k-pop2-deep);
+  --color-pop-3-deep: var(--k-pop3-deep);
+
+  --font-display: var(--k-font-display);
+  --font-sans: var(--k-font-body);
+  --font-mono: var(--k-font-mono);
+  --font-serif: var(--font-instrument-serif);
+
+  --radius-xs: calc(var(--k-r) * 0.3);
+  --radius-sm: calc(var(--k-r) * 0.5);
+  --radius-md: calc(var(--k-r) * 0.7);
+  --radius-lg: calc(var(--k-r) * 0.85);
+  --radius-xl: var(--k-r);
+  --radius-2xl: calc(var(--k-r) * 1.4);
+  --radius-3xl: calc(var(--k-r) * 2);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-travel: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Fallbacks if attributes are ever missing. */
+:root {
+  /* Sticky nav height (h-14 + 1px rule below md, h-16 + 1px from md); pinned stages offset by it. */
+  --k-nav-h: 57px;
+  --k-r: 10px;
+  --k-display-tracking: -0.045em;
+  --k-display-weight: 300;
+  color-scheme: light;
+}
+
+@media (min-width: 768px) { :root { --k-nav-h: 65px; } }
+
+html[data-radius="sharp"] { --k-r: 0px; }
+html[data-radius="soft"] { --k-r: 10px; }
+html[data-radius="round"] { --k-r: 20px; }
+
+@layer base {
+  html {
+    background: var(--k-bg);
+    color: var(--k-ink);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--k-bg);
+    color: var(--k-ink);
+    font-family: var(--k-font-body), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+    transition: background-color 0.4s var(--ease-out-soft), color 0.4s var(--ease-out-soft);
+  }
+
+  ::selection {
+    background: var(--k-accent);
+    color: var(--k-accent-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--k-accent-text);
+    outline-offset: 3px;
+  }
+
+  h1, h2, h3, .text-balance { text-wrap: balance; }
+  p { text-wrap: pretty; }
+
+  /* ---------- Paper grain: a static tile on the page background, never a fixed blended overlay ---------- */
+  html[data-grain="paper"] { --k-grain-img: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  html[data-grain="riso"] { --k-grain-img: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  body, html[data-rhythm="bands"] .k-section:nth-of-type(even) {
+    background-image: var(--k-grain-img, none);
+    background-size: 160px 160px;
+  }
+}
+
+@layer components {
+  /* Display type follows the active pairing's tracking and weight. */
+  .font-display,
+  .display {
+    font-family: var(--k-font-display), ui-serif, Georgia, serif;
+    letter-spacing: var(--k-display-tracking);
+    font-weight: var(--k-display-weight);
+  }
+
+  .mono,
+  .font-mono {
+    font-family: var(--k-font-mono), ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  .tabular { font-variant-numeric: tabular-nums lining-nums; }
+
+  /* Kinetic width only exists in Archivo (Interchange pairing). */
+  html[data-font="interchange"] .kinetic { font-variation-settings: "wdth" var(--k-wdth, 100); }
+
+  /* ---------- Emphasis words (*starred* in headlines → <em class="em">) ---------- */
+  .em { font-style: normal; }
+  /* Route line (default): a 6px accent rule under the words; the last one ends in a station roundel. */
+  html[data-emphasis="route"] .em {
+    background-image: linear-gradient(var(--k-accent), var(--k-accent));
+    background-size: 100% max(4px, 0.065em);
+    background-position: 0 92%;
+    background-repeat: no-repeat;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  html[data-emphasis="route"] .em[data-terminal] {
+    position: relative;
+    padding-right: 0.08em;
+  }
+  html[data-emphasis="route"] .em[data-terminal]::after {
+    content: "";
+    position: absolute;
+    right: -0.14em;
+    bottom: calc(8% - 0.11em + max(2px, 0.0325em));
+    width: 0.22em;
+    height: 0.22em;
+    border-radius: 999px;
+    background: var(--k-surface);
+    border: max(3px, 0.05em) solid var(--k-accent);
+    box-sizing: border-box;
+    transform: translateY(50%);
+  }
+  html[data-emphasis="serif"] .em {
+    font-family: var(--font-instrument-serif), Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    /* Instrument Serif sits smaller than Inter at the same size; nudge it to match the cap height. */
+    font-size: 1.06em;
+    letter-spacing: -0.015em;
+  }
+  html[data-emphasis="display"] .em { font-style: italic; }
+  /* Pairings without a true italic fall back to the highlighter. */
+  html[data-emphasis="highlight"] .em,
+  html[data-emphasis="display"][data-font="sticker"] .em,
+  html[data-emphasis="display"][data-font="blocks"] .em {
+    font-style: normal;
+    background-image: linear-gradient(
+      100deg,
+      transparent 0.5%,
+      color-mix(in oklab, var(--k-pop3) 45%, transparent) 2%,
+      color-mix(in oklab, var(--k-pop3) 38%, transparent) 97%,
+      transparent 99%
+    );
+    background-size: 100% 0.42em;
+    background-position: 0 88%;
+    background-repeat: no-repeat;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    padding-inline: 0.04em;
+  }
+  html[data-emphasis="plain"] .em { font-style: normal; }
+
+  /* ---------- Card styles ---------- */
+  .k-card {
+    position: relative;
+    background: var(--k-surface);
+    border: 1px solid var(--k-line);
+    border-radius: var(--k-r);
+  }
+  html[data-card="paper"] .k-card {
+    box-shadow: 6px 6px 0 0 var(--k-bg-alt), 6px 6px 0 1px var(--k-line);
+  }
+  html[data-card="sticker"] .k-card {
+    border: 3px solid var(--k-surface);
+    box-shadow:
+      0 0 0 1px var(--k-line),
+      0 2px 0 1px var(--k-line),
+      0 14px 28px -10px color-mix(in oklab, var(--k-ink) 22%, transparent);
+    transform: rotate(var(--k-tilt, 0deg));
+  }
+
+  /* ---------- Platform icons (see components/brand/platform-icon.tsx) ----------
+   * activity (default): ink at rest, brand color while an ancestor has data-active="true"
+   * brand: always brand color · mono: always ink */
+  .pi { color: var(--pi-color); transition: color 0.25s, background-color 0.25s; }
+  .pi-tile { background: var(--pi-tile); color: #fff; }
+  html:is([data-icons="mono"], [data-icons="activity"]) .pi { color: var(--k-ink); }
+  html:is([data-icons="mono"], [data-icons="activity"]) .pi-tile { background: var(--k-ink); color: var(--k-bg); }
+  html[data-icons="activity"] [data-active="true"] .pi,
+  html[data-icons="activity"] .pi[data-active="true"] { color: var(--pi-color); }
+  html[data-icons="activity"] [data-active="true"] .pi-tile,
+  html[data-icons="activity"] .pi-tile[data-active="true"] { background: var(--pi-tile); color: #fff; }
+
+  /* ---------- Buttons ---------- */
+  /* Buttons are always pills, whatever the Studio corner setting. */
+  .k-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    transition: transform 0.2s var(--ease-out-soft), background-color 0.2s, box-shadow 0.2s;
+  }
+  .k-btn:active { transform: translateY(1px); }
+  .k-btn-accent {
+    background: var(--k-accent);
+    color: var(--k-accent-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k-accent-edge, transparent);
+  }
+  .k-btn-accent:hover { background: color-mix(in oklab, var(--k-accent) 88%, var(--k-ink)); }
+  .k-btn-ghost {
+    color: var(--k-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k-line-strong);
+  }
+  .k-btn-ghost:hover { background: color-mix(in oklab, var(--k-ink) 5%, transparent); }
+
+  /* ---------- Odometer + split-flap glyphs (drawn, so they never pollute selectable text) ---------- */
+  .k-odo-strip::before {
+    content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+    white-space: pre;
+    display: block;
+    line-height: 1em;
+  }
+  .k-flap-cell::before { content: attr(data-glyph); white-space: pre; }
+
+  /* ---------- Section rhythm ---------- */
+  .k-section { position: relative; }
+  html[data-rhythm="hairlines"] .k-section + .k-section {
+    border-top: 3px double var(--k-line);
+  }
+  html[data-rhythm="bands"] .k-section:nth-of-type(even) { background: var(--k-bg-alt); }
+
+  /* ---------- Layout ---------- */
+  .k-container {
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 768px) { .k-container { padding-inline: 32px; } }
+
+  .eyebrow {
+    font-family: var(--k-font-mono), ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--k-ink-soft);
+  }
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: clip; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

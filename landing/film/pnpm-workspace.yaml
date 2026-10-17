@@ -1,0 +1,2 @@
+# Marks film/ as its own pnpm root so it never shares a lockfile or node_modules with the landing app.
+packages: []

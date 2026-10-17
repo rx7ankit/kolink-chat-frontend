@@ -1,0 +1,4 @@
+# Marks landing/ as its own pnpm root so it never shares a lockfile or node_modules with the app.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true

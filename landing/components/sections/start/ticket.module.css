@@ -1,0 +1,132 @@
+/*
+ * Boarding pass for §10. Real holes, not painted dots: every cut is a mask, so the
+ * section background (bgAlt band, or whatever the Studio rhythm paints) shows through.
+ *   --hole: perforation radius   --pitch: perforation spacing   --notch: seam notch radius
+ * Layers are intersected, so each one must keep (#000) everything except its own cut.
+ */
+
+/* Section band: bgAlt under the default "hairlines" rhythm; under "bands" the global
+   alternation decides, so two bgAlt bands never stack up. */
+:global(html[data-rhythm="hairlines"]) .band {
+  background-color: var(--k-bg-alt);
+}
+
+.pass {
+  --hole: 4.5px;
+  --pitch: 17px;
+  --notch: 13px;
+  /* Where the conductor's punch lands on the stub (centre, from its top-right corner). */
+  --punch-x: 44px;
+  --punch-y: 42px;
+}
+@media (min-width: 1024px) {
+  .pass { --punch-y: 102px; }
+}
+
+.punchGuide {
+  position: absolute;
+  top: calc(var(--punch-y) - 14px);
+  right: calc(var(--punch-x) - 14px);
+  width: 28px;
+  height: 28px;
+}
+
+.main,
+.stub {
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* ---------- Mobile: stub sits under the main part, seam is horizontal ---------- */
+.main {
+  -webkit-mask-image:
+    radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.5px));
+  mask-image:
+    radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 50% 100%, transparent var(--hole), #000 calc(var(--hole) + 0.5px));
+  -webkit-mask-size: 100% 100%, 100% 100%, var(--pitch) 100%;
+  mask-size: 100% 100%, 100% 100%, var(--pitch) 100%;
+  -webkit-mask-repeat: no-repeat, no-repeat, repeat-x;
+  mask-repeat: no-repeat, no-repeat, repeat-x;
+  -webkit-mask-position: 0 0, 0 0, center 0;
+  mask-position: 0 0, 0 0, center 0;
+}
+
+.stub {
+  /* --punch-r is driven by motion when the primary link is clicked. */
+  --punch-r: 0px;
+  -webkit-mask-image:
+    radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.5px)),
+    radial-gradient(circle var(--punch-r) at calc(100% - var(--punch-x)) var(--punch-y), transparent 98%, #000 100%);
+  mask-image:
+    radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at 50% 0, transparent var(--hole), #000 calc(var(--hole) + 0.5px)),
+    radial-gradient(circle var(--punch-r) at calc(100% - var(--punch-x)) var(--punch-y), transparent 98%, #000 100%);
+  -webkit-mask-size: 100% 100%, 100% 100%, var(--pitch) 100%, 100% 100%;
+  mask-size: 100% 100%, 100% 100%, var(--pitch) 100%, 100% 100%;
+  -webkit-mask-repeat: no-repeat, no-repeat, repeat-x, no-repeat;
+  mask-repeat: no-repeat, no-repeat, repeat-x, no-repeat;
+  -webkit-mask-position: 0 0, 0 0, center 0, 0 0;
+  mask-position: 0 0, 0 0, center 0, 0 0;
+  transform-origin: 0% 0%;
+}
+
+/* ---------- Desktop: stub on the right, seam is vertical ---------- */
+@media (min-width: 1024px) {
+  .main {
+    -webkit-mask-image:
+      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.5px));
+    mask-image:
+      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 50%, transparent var(--hole), #000 calc(var(--hole) + 0.5px));
+    -webkit-mask-size: 100% 100%, 100% 100%, 100% var(--pitch);
+    mask-size: 100% 100%, 100% 100%, 100% var(--pitch);
+    -webkit-mask-repeat: no-repeat, no-repeat, repeat-y;
+    mask-repeat: no-repeat, no-repeat, repeat-y;
+    -webkit-mask-position: 0 0, 0 0, 0 center;
+    mask-position: 0 0, 0 0, 0 center;
+  }
+
+  .stub {
+    -webkit-mask-image:
+      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.5px)),
+      radial-gradient(circle var(--punch-r) at calc(100% - var(--punch-x)) var(--punch-y), transparent 98%, #000 100%);
+    mask-image:
+      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 0 50%, transparent var(--hole), #000 calc(var(--hole) + 0.5px)),
+      radial-gradient(circle var(--punch-r) at calc(100% - var(--punch-x)) var(--punch-y), transparent 98%, #000 100%);
+    -webkit-mask-size: 100% 100%, 100% 100%, 100% var(--pitch), 100% 100%;
+    mask-size: 100% 100%, 100% 100%, 100% var(--pitch), 100% 100%;
+    -webkit-mask-repeat: no-repeat, no-repeat, repeat-y, no-repeat;
+    mask-repeat: no-repeat, no-repeat, repeat-y, no-repeat;
+    -webkit-mask-position: 0 0, 0 0, 0 center, 0 0;
+    mask-position: 0 0, 0 0, 0 center, 0 0;
+    /* Tears away from the seam's foot. */
+    transform-origin: 0% 100%;
+  }
+}
+
+/* Decorative barcode: deterministic bar widths come from inline flex-grow values. */
+.barcode {
+  display: flex;
+  align-items: stretch;
+  gap: 2.5px;
+}
+.barcode > span {
+  background: var(--k-ink);
+  min-width: 1px;
+}

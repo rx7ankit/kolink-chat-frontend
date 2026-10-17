@@ -1,0 +1,22 @@
+/* v3 additions */
+.kline .ci { font-variation-settings: normal; }
+.tile3d { position: absolute; transform-style: preserve-3d; }
+.layer3d { position: absolute; transform-style: preserve-3d; backface-visibility: hidden; }
+.callout { font: 500 14px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.callout i { display: block; width: 46px; height: 1.5px; background: var(--ink); }
+.plane-label { font: 500 26px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; }
+.qb {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px 12px 12px;
+  border-radius: 22px;
+  border-bottom-left-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 30px -18px rgba(38, 43, 38, 0.35);
+  font-size: 24px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}

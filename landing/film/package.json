@@ -1,0 +1,29 @@
+{
+  "name": "kolink-film",
+  "version": "1.0.0",
+  "private": true,
+  "description": "koLink Chat product film: a deterministic HTML composition rendered frame-by-frame with headless Chrome and encoded with ffmpeg.",
+  "type": "module",
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "preview": "node scripts/serve.mjs",
+    "audio": "node scripts/prepare-audio.mjs",
+    "beats": "node scripts/analyze-audio.mjs audio/house-one-francisco-alvear-mixkit-662.mp3 --from 2 --to 42 --bars",
+    "render": "node scripts/render.mjs --format 16x9",
+    "render:vertical": "node scripts/render.mjs --format 9x16",
+    "render:all": "node scripts/render.mjs --format 16x9 && node scripts/render.mjs --format 9x16 && node scripts/render.mjs --v2 --format 16x9 && node scripts/render.mjs --v2 --format 9x16 && node scripts/render.mjs --v3 --format 16x9 && node scripts/render.mjs --v3 --format 9x16",
+    "contact": "node scripts/render.mjs --format 16x9 --contact",
+    "fetch-audio": "node scripts/fetch-audio.mjs",
+    "audio:v2": "node scripts/prepare-audio-v2.mjs",
+    "render:v2": "node scripts/render.mjs --v2 --format 16x9",
+    "render:v2:vertical": "node scripts/render.mjs --v2 --format 9x16",
+    "contact:v2": "node scripts/render.mjs --v2 --format 16x9 --contact --step 0.5",
+    "audio:v3": "node scripts/prepare-audio-v2.mjs --version v3",
+    "render:v3": "node scripts/render.mjs --v3 --format 16x9",
+    "render:v3:vertical": "node scripts/render.mjs --v3 --format 9x16",
+    "contact:v3": "node scripts/render.mjs --v3 --format 16x9 --contact --step 0.5"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# product film renders (sources in film/ are committed)
+film/node_modules/
+film/.frames/
+film/out/
